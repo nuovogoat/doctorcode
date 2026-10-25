@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local app data and secrets
+.env
+.env.*
+!.env.example
+*.secret
+*.token
+doctorcode.local.json
+
+# IDE / OS
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
+
+# Android
+android/.gradle/
+android/local.properties
+android/**/build/
+android/.idea/
+android/captures/
+*.apk
+*.aab
+
+# Tool output
+artifacts/
+logs/

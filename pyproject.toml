@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doctorcode"
+version = "0.1.0"
+description = "Model-agnostic desktop studio for prompt engineers: project tabs, structured action feed, LAN companion"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "nuovogoat" }]
+keywords = ["prompt-engineering", "agent", "tkinter", "openai-compatible", "android"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+]
+dependencies = [
+    "core_pack @ git+https://github.com/nuovogoat/universal_core.git@v0.8.2",
+    "pydantic>=2.7,<3",
+    "openai>=1.40,<3",
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "websockets>=12,<16",
+    "zeroconf>=0.132,<1",
+]
+
+[project.optional-dependencies]
+qt = ["PySide6>=6.7,<7"]
+dnd = ["tkinterdnd2>=0.4,<1"]
+dev = [
+    "pytest>=8.0,<9",
+    "pytest-asyncio>=0.24,<2",
+    "httpx>=0.27,<1",
+    "ruff>=0.9,<1",
+]
+
+[project.scripts]
+doctorcode = "doctorcode.cli:main"
+doctorcode-gui = "doctorcode.ui.tk_app:main"
+doctorcode-qt = "doctorcode.ui.qt_app:main"
+doctorcode-server = "doctorcode.server.api:main"
+
+[project.urls]
+Homepage = "https://github.com/nuovogoat/doctorcode"
+Repository = "https://github.com/nuovogoat/doctorcode"
+Issues = "https://github.com/nuovogoat/doctorcode/issues"
+
+[tool.setuptools.packages.find]
+include = ["doctorcode*"]
+
+[tool.setuptools.package-data]
+doctorcode = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra"
+filterwarnings = [
+    "error::ResourceWarning",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["."]
+exclude = ["android", ".venv", "dist", "build"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501", "B008", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

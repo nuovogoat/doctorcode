@@ -6,14 +6,29 @@ never contains a provider host, provider name, or model identifier.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from open_code_ai_connect import ProviderError, ProviderManager
 from openai import APIConnectionError, APIStatusError, APITimeoutError, AsyncOpenAI, OpenAIError
 
 from doctorcode.settings import ConnectionProfile
+
+_PROVIDER_CODES = {
+    "INVALID_BASE_URL": "MODELS_BASE_URL",
+    "AUTH": "MODELS_AUTH",
+    "FORBIDDEN": "MODELS_FORBIDDEN",
+    "RATE_LIMIT": "MODELS_RATE_LIMIT",
+    "SERVER": "MODELS_SERVER",
+    "HTTP_STATUS": "MODELS_HTTP",
+    "TIMEOUT": "MODELS_TIMEOUT",
+    "NETWORK": "MODELS_CONNECTION",
+    "INVALID_RESPONSE": "MODELS_INVALID_RESPONSE",
+    "EMPTY_CATALOG": "MODELS_EMPTY",
+}
 
 
 class LLMError(RuntimeError):
@@ -53,8 +68,6 @@ class ChatClient(Protocol):
         messages: Sequence[dict[str, Any]],
         tools: Sequence[dict[str, Any]],
     ) -> ChatTurn: ...
-
-    async def list_models(self) -> list[str]: ...
 
     async def close(self) -> None: ...
 
@@ -137,27 +150,31 @@ class CompatibleChatClient:
             finish_reason=choice.finish_reason,
         )
 
-    async def list_models(self) -> list[str]:
-        try:
-            response = await self._client.models.list()
-        except APITimeoutError as exc:
-            raise LLMError("MODELS_TIMEOUT", "The model list request timed out.") from exc
-        except APIConnectionError as exc:
-            raise LLMError(
-                "MODELS_CONNECTION", "Could not reach the endpoint for /models."
-            ) from exc
-        except APIStatusError as exc:
-            raise LLMError(
-                "MODELS_HTTP",
-                f"The endpoint returned HTTP {exc.status_code} for /models.",
-            ) from exc
-        except OpenAIError as exc:
-            raise LLMError("MODELS_ERROR", str(exc)[:1000]) from exc
-        models = sorted({item.id for item in response.data if getattr(item, "id", None)})
-        return models
-
     async def close(self) -> None:
         await self._client.close()
+
+
+async def load_models(
+    profile: ConnectionProfile,
+    *,
+    timeout: float = 30.0,
+) -> list[str]:
+    """Read ``GET {base_url}/models`` through the shared provider library.
+
+    ``ProviderManager`` is synchronous, so it runs in a worker thread and never
+    blocks the event loop.  Only Base URL, API key, and timeout are passed; no
+    provider or model is hardcoded.
+    """
+    try:
+        manager = ProviderManager(profile.base_url, profile.api_key, timeout=timeout)
+        models = await asyncio.to_thread(manager.list_models)
+    except ProviderError as exc:
+        raise LLMError(
+            _PROVIDER_CODES.get(exc.code, "MODELS_ERROR"),
+            str(exc),
+            retryable=exc.retryable,
+        ) from exc
+    return models
 
 
 class ChatClientFactory(Protocol):

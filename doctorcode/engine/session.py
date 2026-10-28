@@ -74,6 +74,7 @@ class AgentSession:
         self.client_factory = client_factory
         self.session_id = restored.session_id if restored else uuid.uuid4().hex
         self.messages: list[MessageRecord] = list(restored.messages) if restored else []
+        self.imports: list[str] = list(restored.imports) if restored else []
         self.feed = ActionFeed()
         if restored:
             for event in restored.events:
@@ -152,6 +153,52 @@ class AgentSession:
             )
         )
         self.save()
+
+    def import_messages(
+        self,
+        messages: list[MessageRecord],
+        *,
+        import_id: str,
+        title: str = "",
+        snapshot_path: Path | None = None,
+    ) -> int:
+        """Append a converted external session once, keeping the feed honest.
+
+        The same snapshot imported into the same project is a no-op: its stable
+        ``session.id`` is remembered in ``imports``.  A different project tab
+        gets its own history and its own import record.
+        """
+        import_id = import_id.strip()
+        if not import_id:
+            raise ValueError("An import id is required.")
+        with self._lock:
+            if self._busy:
+                raise SessionBusyError("Stop the current run before importing history.")
+            if import_id in self.imports:
+                return 0
+            clean = [message.model_copy(deep=True) for message in messages]
+            self.messages.extend(clean)
+            self.imports.append(import_id)
+        count = len(clean)
+        self._emit(
+            ActionEvent(
+                session_id=self.session_id,
+                action_type=ActionType.SESSION,
+                status=ActionStatus.SUCCESS,
+                human_summary=(
+                    f"Imported {count} message(s) from external session "
+                    f"{title or import_id}."
+                ),
+                raw_payload=str(snapshot_path) if snapshot_path else "",
+                metadata={
+                    "import_id": import_id,
+                    "imported_messages": count,
+                    "snapshot_path": str(snapshot_path) if snapshot_path else "",
+                },
+            )
+        )
+        self.save()
+        return count
 
     def subscribe(self, listener: ActionListener) -> int:
         return self.feed.subscribe(listener)
@@ -420,6 +467,7 @@ class AgentSession:
                 project_name=self.project_name,
                 model=self.model,
                 auto_mode=self.auto_mode,
+                imports=list(self.imports),
                 messages=list(self.messages),
                 events=self.feed.events(),
             )

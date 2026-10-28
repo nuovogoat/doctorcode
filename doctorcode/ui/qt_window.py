@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from core_pack import CancellationToken, OperationCancelledError, run_process
-from PySide6.QtCore import QObject, Qt, QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -53,7 +53,8 @@ from PySide6.QtWidgets import (
 from doctorcode import __version__
 from doctorcode.engine.events import ActionEvent, ActionStatus, ActionType
 from doctorcode.engine.feed import ActionFeed
-from doctorcode.engine.llm_client import create_client
+from doctorcode.engine.kimi_import import KimiImportService
+from doctorcode.engine.llm_client import load_models
 from doctorcode.engine.reviewer import ReviewerService
 from doctorcode.engine.session import AgentSession
 from doctorcode.engine.workspace import WorkspaceManager
@@ -85,6 +86,8 @@ from doctorcode.ui.modules_logic import (
     pip_available,
 )
 from doctorcode.ui.palette import palette
+from doctorcode.ui.qt_future import FutureWatcher
+from doctorcode.ui.qt_import import KimiImportDialog
 from doctorcode.ui.runner import AsyncRunner
 
 DARK = palette("dark")
@@ -135,41 +138,6 @@ def ask_yes_no(
     box.addButton(translator.t(no_key), QMessageBox.ButtonRole.RejectRole)
     box.exec()
     return box.clickedButton() is yes
-
-
-class FutureWatcher(QObject):
-    """Poll an asyncio/executor future on the Qt event loop."""
-
-    def __init__(
-        self,
-        parent: QObject,
-        future: Future[Any],
-        on_done: Callable[[Any], None],
-        on_error: Callable[[Exception], None],
-        *,
-        interval: int = 100,
-    ) -> None:
-        super().__init__(parent)
-        self._future = future
-        self._on_done = on_done
-        self._on_error = on_error
-        self._timer = QTimer(self)
-        self._timer.setInterval(interval)
-        self._timer.timeout.connect(self._poll)
-        self._timer.start()
-
-    def _poll(self) -> None:
-        if not self._future.done():
-            return
-        self._timer.stop()
-        try:
-            value = self._future.result()
-        except Exception as exc:
-            self._on_error(exc)
-        else:
-            self._on_done(value)
-        finally:
-            self.deleteLater()
 
 
 class QtProjectTab(QWidget):
@@ -681,11 +649,7 @@ class SettingsDialog(QDialog):
             return
 
         async def load() -> list[str]:
-            client = create_client(profile, timeout=30.0)
-            try:
-                return await client.list_models()
-            finally:
-                await client.close()
+            return await load_models(profile, timeout=30.0)
 
         status.setText(self.t("settings.fetching"))
         future = self.main.runner.submit_tracked(load())
@@ -1236,6 +1200,10 @@ class QtMainWindow(QMainWindow):
             logger=self.logger,
         )
         self.workspace.subscribe_all(self._event_queue.put)
+        self.kimi_import = KimiImportService(
+            workspace=self.workspace,
+            data_dir=runtime.data_dir,
+        )
         self.approvals = ApprovalBroker()
         self.mobile_controller = MobileServerController(
             manager=self.workspace,
@@ -1364,6 +1332,7 @@ class QtMainWindow(QMainWindow):
         file_menu.addAction(self.t("gui.close_tab"), self.close_selected_tab)
         file_menu.addSeparator()
         file_menu.addAction(self.t("gui.create_handoff"), self.create_handoff)
+        file_menu.addAction(self.t("menu.import_kimi"), self.open_kimi_import)
         file_menu.addSeparator()
         file_menu.addAction(self.t("menu.quit"), self.close)
         tools_menu = self.menuBar().addMenu("")
@@ -1703,11 +1672,7 @@ class QtMainWindow(QMainWindow):
             return
 
         async def load() -> list[str]:
-            client = create_client(profile, timeout=30.0)
-            try:
-                return await client.list_models()
-            finally:
-                await client.close()
+            return await load_models(profile, timeout=30.0)
 
         self.status.showMessage(self.t("settings.fetching"))
         future = self.runner.submit_tracked(load())
@@ -1759,6 +1724,9 @@ class QtMainWindow(QMainWindow):
 
     def open_mobile(self) -> None:
         MobileDialog(self).exec()
+
+    def open_kimi_import(self) -> None:
+        KimiImportDialog(self).exec()
 
     def open_about(self) -> None:
         QMessageBox.about(

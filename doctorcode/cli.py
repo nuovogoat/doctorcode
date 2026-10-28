@@ -12,7 +12,7 @@ from pathlib import Path
 
 from doctorcode import __version__
 from doctorcode.engine.events import ActionEvent, ActionStatus
-from doctorcode.engine.llm_client import LLMError, create_client
+from doctorcode.engine.llm_client import LLMError, load_models
 from doctorcode.engine.reviewer import ReviewerService
 from doctorcode.engine.workspace import WorkspaceManager
 from doctorcode.i18n import Translator
@@ -99,14 +99,11 @@ async def _list_models(
     if not profile.base_url:
         print(translator.t("cli.url_missing"), file=sys.stderr)
         return 2
-    client = create_client(profile, timeout=30.0)
     try:
-        models = await client.list_models()
+        models = await load_models(profile, timeout=30.0)
     except LLMError as exc:
         print(translator.t("cli.models_failed", error=exc), file=sys.stderr)
         return 1
-    finally:
-        await client.close()
     print(translator.t("cli.models", profile=role))
     if not models:
         print(translator.t("cli.models_empty"), file=sys.stderr)

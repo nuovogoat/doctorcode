@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from doctorcode.engine.llm_client import LLMError, create_client
+from doctorcode.engine.llm_client import LLMError, load_models
 from doctorcode.i18n import LANGUAGES
 from doctorcode.settings import (
     AgentSettings,
@@ -340,11 +340,7 @@ class SettingsWindow(tk.Toplevel):
             return
 
         async def fetch() -> list[str]:
-            client = create_client(profile, timeout=30.0)
-            try:
-                return await client.list_models()
-            finally:
-                await client.close()
+            return await load_models(profile, timeout=30.0)
 
         future = self.app.runner.submit(fetch())
 

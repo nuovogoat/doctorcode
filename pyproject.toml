@@ -25,6 +25,8 @@ classifiers = [
 ]
 dependencies = [
     "core_pack @ git+https://github.com/nuovogoat/universal_core.git@v0.8.2",
+    "open-code-ai-connect @ git+https://github.com/nuovogoat/open_code_ai_connect.git@v2.0.0",
+    "requests>=2.31,<3",
     "pydantic>=2.7,<3",
     "openai>=1.40,<3",
     "fastapi>=0.115,<1",

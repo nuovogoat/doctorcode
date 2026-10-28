@@ -44,3 +44,20 @@ companion; Android talks only to the DoctorCode server.
 
 **Consequence:** current builds do not provide OS-keychain storage. This is
 recorded as a known limitation, not silently hidden.
+
+## D-005 — Provider and Kimi migration logic live in `open_code_ai_connect`
+
+**Decision:** DoctorCode imports `ProviderManager` and `KimiMigrator` from the
+MIT-licensed `open_code_ai_connect` library pinned at `v2.0.0`. DoctorCode owns
+only UI state, snapshot storage, project-tab merging, and duplicate-import
+records. It does not parse Kimi `wire.jsonl`, guess provider URLs, or maintain a
+second session schema.
+
+**Why:** provider discovery and historical migration are GUI-free and shared
+between the desktop, CLI, and future clients. Keeping them in one library
+prevents the UI from becoming the only place where the protocol is implemented.
+
+**Consequence:** `requests` is a DoctorCode runtime dependency because the
+library's synchronous catalogue client uses `core_pack`'s `requests` backend.
+Snapshots are saved verbatim and deduplicated by the stable
+`session.id`; API keys are never part of the snapshot.

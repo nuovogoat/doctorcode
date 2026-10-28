@@ -96,6 +96,7 @@ class StoredSession(BaseModel):
     project_name: str
     model: str = ""
     auto_mode: bool = False
+    imports: list[str] = Field(default_factory=list)
     messages: list[MessageRecord] = Field(default_factory=list)
     events: list[ActionEvent] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

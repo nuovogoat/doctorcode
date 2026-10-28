@@ -21,13 +21,15 @@ from typing import Any
 
 from doctorcode import __version__
 from doctorcode.engine.events import ActionEvent, ActionStatus
-from doctorcode.engine.llm_client import LLMError, create_client
+from doctorcode.engine.kimi_import import KimiImportService
+from doctorcode.engine.llm_client import LLMError, load_models
 from doctorcode.engine.session import AgentSession
 from doctorcode.engine.workspace import WorkspaceManager
 from doctorcode.i18n import LANGUAGES, Translator, resolve_language
 from doctorcode.runtime import AppRuntime, create_runtime
 from doctorcode.server.controller import MobileServerController, ServerInfo
 from doctorcode.ui.approval import ApprovalBroker
+from doctorcode.ui.import_window import KimiImportWindow
 from doctorcode.ui.mobile_window import MobileWindow
 from doctorcode.ui.modules_window import ModulesWindow
 from doctorcode.ui.project_tab import ProjectTab
@@ -85,6 +87,10 @@ class DoctorCodeApp:
             logger=self.logger,
         )
         self.workspace.subscribe_all(self._event_queue.put)
+        self.kimi_import = KimiImportService(
+            workspace=self.workspace,
+            data_dir=runtime.data_dir,
+        )
         self.approvals = ApprovalBroker()
         self.mobile_controller = MobileServerController(
             manager=self.workspace,
@@ -272,6 +278,10 @@ class DoctorCodeApp:
         file_menu.add_command(
             label=t("gui.create_handoff"),
             command=self.create_handoff,
+        )
+        file_menu.add_command(
+            label=t("menu.import_kimi"),
+            command=self.open_kimi_import,
         )
         file_menu.add_separator()
         file_menu.add_command(
@@ -699,11 +709,7 @@ class DoctorCodeApp:
             return
 
         async def load() -> list[str]:
-            client = create_client(profile, timeout=30.0)
-            try:
-                return await client.list_models()
-            finally:
-                await client.close()
+            return await load_models(profile, timeout=30.0)
 
         self._fetching_models = True
         self._set_status(self.t("settings.fetching"))
@@ -778,6 +784,9 @@ class DoctorCodeApp:
 
     def open_mobile(self) -> None:
         self.windows.open("mobile", lambda: MobileWindow(self))
+
+    def open_kimi_import(self) -> None:
+        self.windows.open("kimi-import", lambda: KimiImportWindow(self))
 
     def open_about(self) -> None:
         self.windows.open("about", lambda: AboutWindow(self))

@@ -65,8 +65,6 @@ class CompatibleChatClient:
     def __init__(self, profile: ConnectionProfile, *, timeout: float = 120.0) -> None:
         if not profile.base_url:
             raise LLMError("SETTINGS_MISSING_BASE_URL", "A base URL is required.")
-        if not profile.model:
-            raise LLMError("SETTINGS_MISSING_MODEL", "A model is required.")
         self.profile = profile
         self._client = AsyncOpenAI(
             base_url=profile.base_url,
@@ -80,6 +78,8 @@ class CompatibleChatClient:
         messages: Sequence[dict[str, Any]],
         tools: Sequence[dict[str, Any]],
     ) -> ChatTurn:
+        if not self.profile.model:
+            raise LLMError("SETTINGS_MISSING_MODEL", "A model is required.")
         kwargs: dict[str, Any] = {
             "model": self.profile.model,
             "messages": list(messages),

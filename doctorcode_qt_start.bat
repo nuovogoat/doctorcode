@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 if exist ".venv\Scripts\python.exe" (
@@ -6,4 +7,5 @@ if exist ".venv\Scripts\python.exe" (
 ) else (
     python -m doctorcode.launch --qt %*
 )
+if errorlevel 1 pause
 endlocal

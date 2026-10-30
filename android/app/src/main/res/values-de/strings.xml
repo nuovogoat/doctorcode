@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DoctorCode</string>
+    <string name="app_tagline">Fernsteuerung für deinen Desktop-Agenten</string>
+
+    <string name="connect_title">Mit dem Desktop verbinden</string>
+    <string name="connect_body">Starte DoctorCode auf dem Desktop, öffne „Mobiler Zugriff“ und verbinde beide Geräte mit demselben WLAN.</string>
+    <string name="discovered_title">Gefundene Desktops</string>
+    <string name="discovering">Lokales Netzwerk wird durchsucht…</string>
+    <string name="discovery_empty">Noch keine Desktops gefunden. Prüfe, ob der Desktop-Server läuft und beide Geräte im selben Netzwerk sind.</string>
+    <string name="refresh_discovery">Erneut suchen</string>
+    <string name="scan_hint">Tippe auf einen Desktop, um die Adresse einzutragen.</string>
+    <string name="manual_address">Desktop-Adresse</string>
+    <string name="manual_address_hint">192.168.1.20:8000</string>
+    <string name="pairing_code">Kopplungscode</string>
+    <string name="pairing_code_hint">Sechs Ziffern vom Desktop</string>
+    <string name="pairing_optional">Lass den Code leer, wenn die Kopplung auf dem Desktop deaktiviert ist.</string>
+    <string name="pairing_required">Kopplung erforderlich</string>
+    <string name="pairing_disabled">Kopplung deaktiviert</string>
+    <string name="connect">Verbinden</string>
+    <string name="connecting">Verbindung wird hergestellt…</string>
+    <string name="reconnect">Erneut verbinden</string>
+    <string name="disconnect">Trennen</string>
+    <string name="forget_server">Diesen Desktop vergessen</string>
+    <string name="forget_hint">Das gespeicherte Token wird vom Telefon gelöscht.</string>
+    <string name="close">Schließen</string>
+    <string name="not_connected">Nicht verbunden</string>
+    <string name="connected">Verbunden</string>
+    <string name="settings">Verbindung</string>
+    <string name="security_title">Sicherheit</string>
+    <string name="security_body">Das Kopplungs-Token liegt im Android Keystore. Provider-API-Schlüssel verlassen den Desktop nie.</string>
+    <string name="local_only_note">Nur private LAN-Adressen sind erlaubt. Der Datenverkehr ist unverschlüsselt — nutze ein vertrauenswürdiges Netzwerk.</string>
+
+    <string name="projects_title">Projekte</string>
+    <string name="add_project">Projekt hinzufügen</string>
+    <string name="no_projects">Keine Projekte geöffnet</string>
+    <string name="no_projects_hint">Öffne einen Ordner auf dem Desktop oder füge seinen Pfad hier hinzu.</string>
+    <string name="open_project_title">Projekt öffnen</string>
+    <string name="project_path_hint">C:\Projects\my_project</string>
+    <string name="open_project">Öffnen</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="model_label">Modell</string>
+    <string name="writer_missing">Das Schreibmodell ist auf dem Desktop nicht konfiguriert.</string>
+
+    <string name="feed_title">Aktionsfeed</string>
+    <string name="no_events">Noch keine Aktionen. Sende eine Anfrage, um zu starten.</string>
+    <string name="details">Details</string>
+    <string name="hide_details">Details ausblenden</string>
+    <string name="raw_payload">Rohdaten</string>
+    <string name="metadata">Metadaten</string>
+
+    <string name="prompt_label">Anfrage</string>
+    <string name="prompt_hint">Beschreibe die Aufgabe für dieses Projekt…</string>
+    <string name="send">Senden</string>
+    <string name="stop">STOPP</string>
+    <string name="auto_mode">Ohne Aufsicht</string>
+    <string name="auto_description">Der Agent behebt Fehler selbst, ohne anzuhalten.</string>
+    <string name="voice_input">Stimme</string>
+    <string name="listening">Höre zu…</string>
+    <string name="voice_unavailable">Spracherkennung ist auf diesem Gerät nicht verfügbar.</string>
+    <string name="voice_permission">Für die Spracheingabe ist die Mikrofonberechtigung nötig.</string>
+    <string name="voice_error">Spracheingabe fehlgeschlagen (Code %1$d).</string>
+    <string name="voice_empty">Keine Sprache erkannt.</string>
+    <string name="voice_prompt">Sprich deine Anfrage</string>
+
+    <string name="status_success">ERFOLG</string>
+    <string name="status_failure">FEHLER</string>
+    <string name="status_in_progress">LÄUFT</string>
+    <string name="refresh">Aktualisieren</string>
+    <string name="server_version">Server %1$s</string>
+    <string name="busy">Arbeitet…</string>
+    <string name="idle">Bereit</string>
+    <string name="stop_sent">STOPP gesendet.</string>
+    <string name="disconnected">Verbindung zum Desktop getrennt.</string>
+    <string name="project_opened">Projekt geöffnet: %1$s.</string>
+    <string name="event_count">Ereignisse: %1$d</string>
+    <string name="no_selection">Wähle ein Projekt.</string>
+
+    <string name="address_invalid">Gib eine gültige Desktop-Adresse ein.</string>
+    <string name="private_network_only">Nur private LAN-Adressen sind erlaubt.</string>
+    <string name="connection_failed">Verbindung fehlgeschlagen: %1$s</string>
+    <string name="reconnecting">Verbindung verloren; neuer Versuch…</string>
+    <string name="pairing_expired">Die Kopplung ist abgelaufen. Gib einen neuen Code ein.</string>
+    <string name="projects_failed">Projekte konnten nicht geladen werden.</string>
+    <string name="prompt_failed">Anfrage konnte nicht gesendet werden.</string>
+    <string name="stop_failed">STOPP konnte nicht gesendet werden.</string>
+    <string name="auto_failed">Der Modus „Ohne Aufsicht“ konnte nicht geändert werden.</string>
+    <string name="project_open_failed">Projekt konnte nicht geöffnet werden.</string>
+    <string name="error_generic">Etwas ist schiefgelaufen.</string>
+</resources>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DoctorCode</string>
+    <string name="app_tagline">Пульт управления агентом на компьютере</string>
+
+    <string name="connect_title">Подключение к компьютеру</string>
+    <string name="connect_body">Запустите DoctorCode на компьютере, откройте «Мобильный доступ» и подключите оба устройства к одной сети Wi-Fi.</string>
+    <string name="discovered_title">Найденные компьютеры</string>
+    <string name="discovering">Сканирование локальной сети…</string>
+    <string name="discovery_empty">Компьютеры пока не найдены. Проверьте, что сервер на компьютере запущен, а устройства находятся в одной сети.</string>
+    <string name="refresh_discovery">Сканировать снова</string>
+    <string name="scan_hint">Нажмите на компьютер, чтобы подставить адрес.</string>
+    <string name="manual_address">Адрес компьютера</string>
+    <string name="manual_address_hint">192.168.1.20:8000</string>
+    <string name="pairing_code">Код сопряжения</string>
+    <string name="pairing_code_hint">Шесть цифр с экрана компьютера</string>
+    <string name="pairing_optional">Оставьте код пустым, если сопряжение на компьютере отключено.</string>
+    <string name="pairing_required">Требуется сопряжение</string>
+    <string name="pairing_disabled">Сопряжение отключено</string>
+    <string name="connect">Подключиться</string>
+    <string name="connecting">Подключение…</string>
+    <string name="reconnect">Переподключиться</string>
+    <string name="disconnect">Отключиться</string>
+    <string name="forget_server">Забыть этот компьютер</string>
+    <string name="forget_hint">Сохранённый токен будет удалён с телефона.</string>
+    <string name="close">Закрыть</string>
+    <string name="not_connected">Нет подключения</string>
+    <string name="connected">Подключено</string>
+    <string name="settings">Подключение</string>
+    <string name="security_title">Безопасность</string>
+    <string name="security_body">Токен сопряжения хранится в Android Keystore. API-ключи провайдеров никогда не покидают компьютер.</string>
+    <string name="local_only_note">Разрешены только частные адреса локальной сети. Трафик не шифруется — используйте доверенную сеть.</string>
+
+    <string name="projects_title">Проекты</string>
+    <string name="add_project">Добавить проект</string>
+    <string name="no_projects">Нет открытых проектов</string>
+    <string name="no_projects_hint">Откройте папку на компьютере или добавьте её путь здесь.</string>
+    <string name="open_project_title">Открыть проект</string>
+    <string name="project_path_hint">C:\Projects\my_project</string>
+    <string name="open_project">Открыть</string>
+    <string name="cancel">Отмена</string>
+    <string name="model_label">Модель</string>
+    <string name="writer_missing">Модель автора не настроена на компьютере.</string>
+
+    <string name="feed_title">Лента действий</string>
+    <string name="no_events">Действий пока нет. Отправьте запрос, чтобы начать.</string>
+    <string name="details">Подробности</string>
+    <string name="hide_details">Скрыть подробности</string>
+    <string name="raw_payload">Сырые данные</string>
+    <string name="metadata">Метаданные</string>
+
+    <string name="prompt_label">Запрос</string>
+    <string name="prompt_hint">Опишите задачу для этого проекта…</string>
+    <string name="send">Отправить</string>
+    <string name="stop">СТОП</string>
+    <string name="auto_mode">Без наблюдения</string>
+    <string name="auto_description">Агент сам исправляет сбои, не останавливаясь.</string>
+    <string name="voice_input">Голос</string>
+    <string name="listening">Слушаю…</string>
+    <string name="voice_unavailable">Распознавание речи недоступно на этом устройстве.</string>
+    <string name="voice_permission">Для голосового ввода нужно разрешение на микрофон.</string>
+    <string name="voice_error">Голосовой ввод не удался (код %1$d).</string>
+    <string name="voice_empty">Речь не распознана.</string>
+    <string name="voice_prompt">Произнесите запрос</string>
+
+    <string name="status_success">УСПЕХ</string>
+    <string name="status_failure">ОШИБКА</string>
+    <string name="status_in_progress">В РАБОТЕ</string>
+    <string name="refresh">Обновить</string>
+    <string name="server_version">Сервер %1$s</string>
+    <string name="busy">Работает…</string>
+    <string name="idle">Готово</string>
+    <string name="stop_sent">СТОП отправлен.</string>
+    <string name="disconnected">Подключение к компьютеру закрыто.</string>
+    <string name="project_opened">Проект открыт: %1$s.</string>
+    <string name="event_count">Событий: %1$d</string>
+    <string name="no_selection">Выберите проект.</string>
+
+    <string name="address_invalid">Введите корректный адрес компьютера.</string>
+    <string name="private_network_only">Разрешены только частные адреса локальной сети.</string>
+    <string name="connection_failed">Не удалось подключиться: %1$s</string>
+    <string name="reconnecting">Связь потеряна; переподключение…</string>
+    <string name="pairing_expired">Сопряжение истекло. Введите новый код.</string>
+    <string name="projects_failed">Не удалось загрузить проекты.</string>
+    <string name="prompt_failed">Не удалось отправить запрос.</string>
+    <string name="stop_failed">Не удалось отправить СТОП.</string>
+    <string name="auto_failed">Не удалось изменить режим «Без наблюдения».</string>
+    <string name="project_open_failed">Не удалось открыть проект.</string>
+    <string name="error_generic">Что-то пошло не так.</string>
+</resources>

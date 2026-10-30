@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        The desktop bridge is a cleartext HTTP/WebSocket service on the private
+        LAN. NetworkPolicy in the app accepts only loopback, RFC1918, link-local,
+        CGNAT, IPv6 ULA, and .local hosts. Public Internet addresses are refused
+        before a request is made.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

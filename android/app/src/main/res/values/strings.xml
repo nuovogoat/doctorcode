@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DoctorCode</string>
+    <string name="app_tagline">Remote control for your desktop agent</string>
+
+    <string name="connect_title">Connect to your desktop</string>
+    <string name="connect_body">Start DoctorCode on the desktop, open Mobile access, and keep both devices on the same Wi-Fi network.</string>
+    <string name="discovered_title">Desktops found</string>
+    <string name="discovering">Scanning the local network…</string>
+    <string name="discovery_empty">No desktops found yet. Check that the desktop server is running and that both devices are on the same network.</string>
+    <string name="refresh_discovery">Scan again</string>
+    <string name="scan_hint">Tap a desktop to fill its address.</string>
+    <string name="manual_address">Desktop address</string>
+    <string name="manual_address_hint">192.168.1.20:8000</string>
+    <string name="pairing_code">Pairing code</string>
+    <string name="pairing_code_hint">Six digits shown on the desktop</string>
+    <string name="pairing_optional">Leave the code empty if pairing is disabled on the desktop.</string>
+    <string name="pairing_required">Pairing required</string>
+    <string name="pairing_disabled">Pairing disabled</string>
+    <string name="connect">Connect</string>
+    <string name="connecting">Connecting…</string>
+    <string name="reconnect">Reconnect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="forget_server">Forget this desktop</string>
+    <string name="forget_hint">The saved token will be deleted from this phone.</string>
+    <string name="close">Close</string>
+    <string name="not_connected">Not connected</string>
+    <string name="connected">Connected</string>
+    <string name="settings">Connection</string>
+    <string name="security_title">Security</string>
+    <string name="security_body">The pairing token is stored in the Android Keystore. Provider API keys never leave the desktop.</string>
+    <string name="local_only_note">Only private LAN addresses are accepted. Traffic is not encrypted; use a trusted network.</string>
+
+    <string name="projects_title">Projects</string>
+    <string name="add_project">Add project</string>
+    <string name="no_projects">No project tabs are open</string>
+    <string name="no_projects_hint">Open a folder on the desktop or add its path here.</string>
+    <string name="open_project_title">Open a project</string>
+    <string name="project_path_hint">C:\Projects\my_project</string>
+    <string name="open_project">Open</string>
+    <string name="cancel">Cancel</string>
+    <string name="model_label">Model</string>
+    <string name="writer_missing">The writer model is not configured on the desktop.</string>
+
+    <string name="feed_title">Action feed</string>
+    <string name="no_events">No actions yet. Send a prompt to start.</string>
+    <string name="details">Details</string>
+    <string name="hide_details">Hide details</string>
+    <string name="raw_payload">Raw payload</string>
+    <string name="metadata">Metadata</string>
+
+    <string name="prompt_label">Prompt</string>
+    <string name="prompt_hint">Describe the task for this project…</string>
+    <string name="send">Send</string>
+    <string name="stop">STOP</string>
+    <string name="auto_mode">No-Watch</string>
+    <string name="auto_description">Let the agent repair its own failures without stopping.</string>
+    <string name="voice_input">Voice</string>
+    <string name="listening">Listening…</string>
+    <string name="voice_unavailable">Speech recognition is not available on this device.</string>
+    <string name="voice_permission">Microphone permission is required for voice input.</string>
+    <string name="voice_error">Voice input failed (code %1$d).</string>
+    <string name="voice_empty">No speech was recognized.</string>
+    <string name="voice_prompt">Speak your prompt</string>
+
+    <string name="status_success">SUCCESS</string>
+    <string name="status_failure">FAILURE</string>
+    <string name="status_in_progress">IN PROGRESS</string>
+    <string name="refresh">Refresh</string>
+    <string name="server_version">Server %1$s</string>
+    <string name="busy">Working…</string>
+    <string name="idle">Ready</string>
+    <string name="stop_sent">STOP sent.</string>
+    <string name="disconnected">Disconnected from the desktop.</string>
+    <string name="project_opened">Project opened: %1$s.</string>
+    <string name="event_count">%1$d events</string>
+    <string name="no_selection">Select a project.</string>
+
+    <string name="address_invalid">Enter a valid desktop address.</string>
+    <string name="private_network_only">Only private LAN addresses are allowed.</string>
+    <string name="connection_failed">Connection failed: %1$s</string>
+    <string name="reconnecting">Connection lost; reconnecting…</string>
+    <string name="pairing_expired">Pairing expired. Enter a new code.</string>
+    <string name="projects_failed">Could not load projects.</string>
+    <string name="prompt_failed">Could not send the prompt.</string>
+    <string name="stop_failed">Could not send STOP.</string>
+    <string name="auto_failed">Could not change No-Watch mode.</string>
+    <string name="project_open_failed">Could not open the project.</string>
+    <string name="error_generic">Something went wrong.</string>
+</resources>

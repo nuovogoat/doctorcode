@@ -61,3 +61,41 @@ prevents the UI from becoming the only place where the protocol is implemented.
 library's synchronous catalogue client uses `core_pack`'s `requests` backend.
 Snapshots are saved verbatim and deduplicated by the stable
 `session.id`; API keys are never part of the snapshot.
+
+## D-006 — Android 15 companion uses private-LAN HTTP and a Keystore token
+
+**Decision:** the companion is a Kotlin/Compose app with `minSdk 35`, discovered
+through `_doctorcode._tcp.` mDNS. REST performs actions, WebSocket streams feed
+events, and the bearer token travels in the `Authorization` header. The app
+rejects public hosts, allows cleartext only to loopback/RFC1918/link-local/CGNAT/
+IPv6-ULA/`.local` addresses, and encrypts the token with an AES/GCM key in
+Android Keystore. Backups and device-transfer extraction are disabled.
+
+**Why:** the desktop bridge is a LAN service, not a public API. Requiring
+Android 15 keeps the supported surface small and gives modern NSD, Compose, and
+Keystore behaviour without compatibility branches. A phone must be useful as a
+remote control without becoming a second place where API keys or source code
+live.
+
+**Consequence:** there is no TLS, so prompts and feed events are visible to a
+passive attacker on the same network. This is recorded in
+[`docs/SECURITY.md`](docs/SECURITY.md) rather than hidden. A signed release build
+is required outside development.
+
+## D-007 — Repository gates are a dependency-free Python script
+
+**Decision:** `tools/check_gates.py` implements the v2.7 gates with the standard
+library only and runs before pytest in CI. It checks i18n parity, Android string
+parity and format specifiers, launcher rules, version parity, regression links,
+PowerShell BOMs, documentation links, Android manifest security, and commit
+subject length.
+
+**Why:** a gate that needs a GUI, Android SDK, or the project's virtualenv cannot
+run in every CI job. Keeping it import-light means a missing dependency fails
+the job with a clear message instead of a stack trace. Gate failures name the
+offending key or file, so the fix is mechanical.
+
+**Consequence:** the gate is intentionally not a general linter. Ruff, pytest,
+`pip check`, and the Android build remain separate jobs; the gate does not
+duplicate them.
+

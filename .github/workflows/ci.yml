@@ -17,9 +17,18 @@
 # - timeout-minutes обязателен: hung job блокирует единственный физический
 #   раннер навсегда.
 # - Workspace очищается каждый прогон: self-hosted раннер персистентен.
-# - Матрица Python временно сокращена до 3.13 (requires-python >=3.12):
-#   один физический раннер исполняет леги последовательно, 3.13 уже в
-#   toolcache флота (ср. .python-version prikaz666n).
+# - Матрица Python сокращена до 3.12 (requires-python >=3.12): один
+#   физический раннер исполняет леги последовательно, а 3.12 — конвенция
+#   toolcache флота (готовые деревья 3.10.11/3.12.10 у asr_local и
+#   universal_core). On-demand-установка setup-python на этом хосте
+#   невозможна: инсталлятор требует прав администратора, которых у сервисной
+#   учётки нет (прогон 41120436497: PermissionDenied на HKLM\...\Uninstall).
+#   Дерево 3.12.10 для Runner-doctorcode скопировано из toolcache
+#   Runner-universal_core (host-side ремонт 2026-10-31, без скачиваний);
+#   контур RunnersExplorer сверит его при ближайшей сверке флота.
+# - Android SDK провижинится bash-шагом, а не android-actions/setup-android:
+#   экшен распаковывает cmdline-tools через Expand-Archive из temp-файла без
+#   расширения .zip и падает на PowerShell 5.1 (прогон 41120436497).
 # - Gradle-кэш без actions/cache: GRADLE_USER_HOME (~/.gradle) персистентного
 #   раннера переживает прогоны.
 # - JDK — Microsoft OpenJDK 17 (distribution: microsoft): в локальной проверке
@@ -47,7 +56,7 @@ concurrency:
 
 jobs:
   python:
-    name: Python 3.13 (gates, tests, ruff)
+    name: Python 3.12 (gates, tests, ruff)
     # security: PR из форка job не запускает; push и workflow_dispatch проходят.
     if: |
       github.event_name != 'pull_request' ||
@@ -82,7 +91,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
         with:
-          python-version: "3.13"
+          # Только toolcache-hit: on-demand-инсталлятор требует админ-прав
+          # (см. шапку). Версия обязана быть провижинена контуром.
+          python-version: "3.12"
 
       - name: Cache pip
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57  # v4.2.0
@@ -137,9 +148,10 @@ jobs:
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, Windows, X64]
-    # Холодный старт: дистрибутив Gradle 8.9, AGP/зависимости и lint
-    # могут занять больше получаса; таймаут ограничивает hung job.
-    timeout-minutes: 60
+    # Холодный старт: cmdline-tools ~150 МБ скачивались 12+ минут (прогон
+    # 41120436497), плюс пакеты SDK, дистрибутив Gradle 8.9, AGP/зависимости
+    # и lint. Таймаут ограничивает hung job на единственном раннере.
+    timeout-minutes: 90
     steps:
       # PATH-инъекция строго до первого bash-шага (см. job python).
       - name: Git Bash в PATH
@@ -166,16 +178,36 @@ jobs:
           distribution: microsoft
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407  # v3.2.2
-        with:
-          # На чистом SDK лицензии не приняты — принимаем явно, иначе
-          # sdkmanager останавливается на интерактивном запросе.
-          accept-android-sdk-license-packages: true
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+      - name: Provision Android SDK
+        # Замена android-actions/setup-android: экшен скачивает cmdline-tools
+        # в temp-файл без расширения .zip, и Expand-Archive на PowerShell 5.1
+        # отказывается его распаковывать (прогон 41120436497). Здесь: curl +
+        # bsdtar из System32 (GNU tar Git Bash zip не читает) + sdkmanager.
+        # SDK ставится в профиль службы раннера и переживает прогоны:
+        # повторные запуски пропускают скачивание (sdkmanager идемпотентен).
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$(cygpath -u "$USERPROFILE")/.android/sdk"
+          SDK_WIN="$(cygpath -w "$SDK")"
+          TMP="$(cygpath -u "$RUNNER_TEMP")"
+          mkdir -p "$SDK/cmdline-tools"
+          if [ ! -f "$SDK/cmdline-tools/latest/bin/sdkmanager.bat" ]; then
+            curl -sSfL --retry 3 -o "$TMP/cmdline-tools.zip" \
+              "https://dl.google.com/android/repository/commandlinetools-win-12266719_latest.zip"
+            rm -rf "$SDK/cmdline-tools/latest" "$SDK/cmdline-tools/tmp"
+            mkdir -p "$SDK/cmdline-tools/tmp"
+            /c/Windows/System32/tar.exe -xf "$TMP/cmdline-tools.zip" -C "$SDK/cmdline-tools/tmp"
+            mv "$SDK/cmdline-tools/tmp/cmdline-tools" "$SDK/cmdline-tools/latest"
+            rm -rf "$SDK/cmdline-tools/tmp" "$TMP/cmdline-tools.zip"
+          fi
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager.bat"
+          # yes закрывает интерактивные запросы лицензий; его SIGPIPE под
+          # pipefail гасится через || true.
+          yes | "$SDKMANAGER" --sdk_root="$SDK_WIN" --licenses > /dev/null || true
+          "$SDKMANAGER" --sdk_root="$SDK_WIN" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          echo "ANDROID_HOME=$SDK_WIN" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_WIN" >> "$GITHUB_ENV"
 
       # gradlew.bat (не ./gradlew): запуск через cmd избегает MSYS-конверсии
       # путей, а JAVA_HOME/ANDROID_HOME из GITHUB_ENV видны дочерним процессам.

@@ -104,8 +104,38 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install
+        # Приватные git-зависимости (nuovogoat/universal_core v0.8.2 и
+        # nuovogoat/open_code_ai_connect v2.0.0; в PyPI их нет). GITHUB_TOKEN
+        # этого workflow соседние приватные репозитории читать не может, а
+        # анонимный clone под сервисной учёткой повис на интерактивном запросе
+        # Git Credential Manager до timeout-minutes (прогон 41133167646).
+        # Поэтому: интерактивные запросы жёстко запрещены, а при наличии
+        # секрета CI_DEPENDENCIES_TOKEN (fine-grained PAT с Contents:read на
+        # оба репозитория) он подключается через временный GIT_CONFIG_GLOBAL
+        # (insteadOf), который не попадает в глобальный git-конфиг раннера и
+        # удаляется по trap. Нет секрета — мгновенный fail с инструкцией.
         shell: bash
+        env:
+          CI_DEPENDENCIES_TOKEN: ${{ secrets.CI_DEPENDENCIES_TOKEN }}
+          GIT_TERMINAL_PROMPT: "0"
+          GCM_INTERACTIVE: never
         run: |
+          set -euo pipefail
+          if [ -z "${CI_DEPENDENCIES_TOKEN:-}" ]; then
+            echo "::error::Secret CI_DEPENDENCIES_TOKEN is not set. Private git dependencies (nuovogoat/universal_core, nuovogoat/open_code_ai_connect) cannot be cloned with the workflow GITHUB_TOKEN. Create a fine-grained PAT with Contents:read on both repositories and run: gh secret set CI_DEPENDENCIES_TOKEN --repo nuovogoat/doctorcode"
+            exit 1
+          fi
+          # Смешанные разделители в $RUNNER_TEMP/... корректны и для MSYS bash
+          # (запись файла), и для Win32 API нативного git.exe (GIT_CONFIG_GLOBAL).
+          GITCFG="$RUNNER_TEMP/ci-gitconfig"
+          trap 'rm -f "$GITCFG"' EXIT
+          {
+            echo '[credential]'
+            echo '    helper ='
+            echo '[url "https://x-access-token:'"$CI_DEPENDENCIES_TOKEN"'@github.com/"]'
+            echo '    insteadOf = https://github.com/'
+          } > "$GITCFG"
+          export GIT_CONFIG_GLOBAL="$GITCFG"
           "$pythonLocation/python.exe" -m pip install --upgrade pip
           "$pythonLocation/python.exe" -m pip install -e ".[dev]"
 

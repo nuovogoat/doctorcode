@@ -192,6 +192,16 @@ commit-subject check, the Python suite, Ruff, `pip check`, and the Android
 on the self-hosted Windows runner described in [RUNNERS.md](RUNNERS.md); the
 repository itself neither installs nor registers runners.
 
+The Python dependencies `universal_core` and `open_code_ai_connect` are private
+git repositories, so CI additionally requires the `CI_DEPENDENCIES_TOKEN`
+Actions secret: a fine-grained PAT with **Contents: read** on both. Without it
+the Install step fails fast with an explicit instruction instead of hanging the
+runner on a credential prompt. Set it with:
+
+```powershell
+gh secret set CI_DEPENDENCIES_TOKEN --repo nuovogoat/doctorcode
+```
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)

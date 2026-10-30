@@ -10,8 +10,10 @@
 #   node-экшены и cmd работают.
 # - Python вызывается абсолютным путём "$pythonLocation/python.exe": порядок
 #   PATH-prepend на хосте недетерминирован (системный Python обгонял toolcache).
-# - Git Bash добавляется в PATH отдельным cmd-шагом: у службы раннера его нет;
-#   сам раннер находит bash.EXE фолбэком, PATH нужен для вложенных вызовов.
+# - Git Bash добавляется в PATH ПЕРВЫМ cmd-шагом: без инъекции shell: bash
+#   падает "bash: command not found" (прогон 41119922994, 2026-10-31) —
+#   фолбэк-обнаружения bash у раннера этого хоста нет, в отличие от хоста
+#   universal_core. cmd доступен всегда.
 # - timeout-minutes обязателен: hung job блокирует единственный физический
 #   раннер навсегда.
 # - Workspace очищается каждый прогон: self-hosted раннер персистентен.
@@ -56,16 +58,19 @@ jobs:
       # Защитно: Qt-тесты не должны пытаться открыть окно на headless-раннере.
       QT_QPA_PLATFORM: offscreen
     steps:
+      # PATH-инъекция строго до первого bash-шага: у службы раннера Git Bash
+      # нет в PATH, и shell: bash без неё падает "bash: command not found".
+      - name: Git Bash в PATH
+        shell: cmd
+        run: echo C:/Program Files/Git/bin>>"%GITHUB_PATH%"
+
       - name: Clean workspace
+        # Self-hosted раннер персистентен: убираем остатки прошлого прогона.
         shell: bash
         run: |
           if [ -d "$GITHUB_WORKSPACE" ]; then
             find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} + || true
           fi
-
-      - name: Git Bash в PATH
-        shell: cmd
-        run: echo C:/Program Files/Git/bin>>"%GITHUB_PATH%"
 
       # SHA-пиннинг actions: тег перезаписывается апстримом, SHA — нет
       # (прецедент tj-actions 2025). Обновление — вручную после зелёного прогона.
@@ -136,16 +141,18 @@ jobs:
     # могут занять больше получаса; таймаут ограничивает hung job.
     timeout-minutes: 60
     steps:
+      # PATH-инъекция строго до первого bash-шага (см. job python).
+      - name: Git Bash в PATH
+        shell: cmd
+        run: echo C:/Program Files/Git/bin>>"%GITHUB_PATH%"
+
       - name: Clean workspace
+        # Self-hosted раннер персистентен: убираем остатки прошлого прогона.
         shell: bash
         run: |
           if [ -d "$GITHUB_WORKSPACE" ]; then
             find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} + || true
           fi
-
-      - name: Git Bash в PATH
-        shell: cmd
-        run: echo C:/Program Files/Git/bin>>"%GITHUB_PATH%"
 
       - name: Check out
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2

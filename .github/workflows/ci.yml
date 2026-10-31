@@ -109,31 +109,79 @@ jobs:
         # этого workflow соседние приватные репозитории читать не может, а
         # анонимный clone под сервисной учёткой повис на интерактивном запросе
         # Git Credential Manager до timeout-minutes (прогон 41133167646).
-        # Поэтому: интерактивные запросы жёстко запрещены, а при наличии
-        # секрета CI_DEPENDENCIES_TOKEN (fine-grained PAT с Contents:read на
-        # оба репозитория) он подключается через временный GIT_CONFIG_GLOBAL
-        # (insteadOf), который не попадает в глобальный git-конфиг раннера и
-        # удаляется по trap. Нет секрета — мгновенный fail с инструкцией.
+        #
+        # Основной механизм — read-only deploy-ключи per-repo (секреты
+        # CI_DEPLOY_KEY_CORE/CI_DEPLOY_KEY_CONNECT; ключи "doctorcode-ci
+        # (read-only)" в Settings → Deploy keys обоих репозиториев). GitHub
+        # аутентифирует соединение по первому валидному ключу и не перебирает
+        # второй при отказе в доступе к репозиторию, поэтому ключи разведены
+        # по ssh-алиасам gh-core/gh-connect с insteadOf по точным префиксам
+        # репозиториев (проверено локально git ls-remote 2026-10-31).
+        # Альтернатива — fine-grained PAT (CI_DEPENDENCIES_TOKEN,
+        # Contents:read на оба репозитория); при наличии имеет приоритет.
+        # Весь конфиг временный (GIT_CONFIG_GLOBAL/ssh -F, удаляется trap),
+        # интерактивные запросы жёстко запрещены. Нет ни одного секрета —
+        # fail за секунды с инструкцией вместо hangs единственного раннера.
         shell: bash
         env:
           CI_DEPENDENCIES_TOKEN: ${{ secrets.CI_DEPENDENCIES_TOKEN }}
+          CI_DEPLOY_KEY_CORE: ${{ secrets.CI_DEPLOY_KEY_CORE }}
+          CI_DEPLOY_KEY_CONNECT: ${{ secrets.CI_DEPLOY_KEY_CONNECT }}
           GIT_TERMINAL_PROMPT: "0"
           GCM_INTERACTIVE: never
         run: |
           set -euo pipefail
-          if [ -z "${CI_DEPENDENCIES_TOKEN:-}" ]; then
-            echo "::error::Secret CI_DEPENDENCIES_TOKEN is not set. Private git dependencies (nuovogoat/universal_core, nuovogoat/open_code_ai_connect) cannot be cloned with the workflow GITHUB_TOKEN. Create a fine-grained PAT with Contents:read on both repositories and run: gh secret set CI_DEPENDENCIES_TOKEN --repo nuovogoat/doctorcode"
+          HAVE_PAT=0
+          if [ -n "${CI_DEPENDENCIES_TOKEN:-}" ]; then HAVE_PAT=1; fi
+          HAVE_KEYS=0
+          if [ -n "${CI_DEPLOY_KEY_CORE:-}" ] && [ -n "${CI_DEPLOY_KEY_CONNECT:-}" ]; then HAVE_KEYS=1; fi
+          if [ "$HAVE_PAT" -eq 0 ] && [ "$HAVE_KEYS" -eq 0 ]; then
+            echo "::error::No credentials for private git dependencies (nuovogoat/universal_core, nuovogoat/open_code_ai_connect). Set CI_DEPLOY_KEY_CORE + CI_DEPLOY_KEY_CONNECT (read-only deploy keys) or CI_DEPENDENCIES_TOKEN (fine-grained PAT, Contents:read on both repos): gh secret set <name> --repo nuovogoat/doctorcode"
             exit 1
           fi
-          # Смешанные разделители в $RUNNER_TEMP/... корректны и для MSYS bash
-          # (запись файла), и для Win32 API нативного git.exe (GIT_CONFIG_GLOBAL).
+          # Смешанные разделители $RUNNER_TEMP/... корректны и для MSYS bash,
+          # и для Win32 API нативного git.exe (GIT_CONFIG_GLOBAL); POSIX-пути
+          # ($TMPD/...) — для ssh, его конфига и файлов ключей.
+          TMPD="$(cygpath -u "$RUNNER_TEMP")"
           GITCFG="$RUNNER_TEMP/ci-gitconfig"
-          trap 'rm -f "$GITCFG"' EXIT
+          SSHCFG="$TMPD/ci-ssh-config"
+          KEY_CORE="$TMPD/ci_deploy_key_core"
+          KEY_CONNECT="$TMPD/ci_deploy_key_connect"
+          KNOWN_HOSTS="$TMPD/ci_known_hosts"
+          trap 'rm -f "$GITCFG" "$SSHCFG" "$KEY_CORE" "$KEY_CONNECT" "$KNOWN_HOSTS"' EXIT
           {
             echo '[credential]'
             echo '    helper ='
-            echo '[url "https://x-access-token:'"$CI_DEPENDENCIES_TOKEN"'@github.com/"]'
-            echo '    insteadOf = https://github.com/'
+            if [ "$HAVE_PAT" -eq 1 ]; then
+              echo '[url "https://x-access-token:'"$CI_DEPENDENCIES_TOKEN"'@github.com/"]'
+              echo '    insteadOf = https://github.com/'
+            else
+              printf '%s\n' "$CI_DEPLOY_KEY_CORE" > "$KEY_CORE"
+              printf '%s\n' "$CI_DEPLOY_KEY_CONNECT" > "$KEY_CONNECT"
+              chmod 600 "$KEY_CORE" "$KEY_CONNECT"
+              {
+                echo 'Host gh-core'
+                echo '    HostName github.com'
+                echo '    User git'
+                echo "    IdentityFile $KEY_CORE"
+                echo '    IdentitiesOnly yes'
+                echo '    StrictHostKeyChecking accept-new'
+                echo "    UserKnownHostsFile $KNOWN_HOSTS"
+                echo 'Host gh-connect'
+                echo '    HostName github.com'
+                echo '    User git'
+                echo "    IdentityFile $KEY_CONNECT"
+                echo '    IdentitiesOnly yes'
+                echo '    StrictHostKeyChecking accept-new'
+                echo "    UserKnownHostsFile $KNOWN_HOSTS"
+              } > "$SSHCFG"
+              chmod 600 "$SSHCFG"
+              export GIT_SSH_COMMAND="ssh -F $SSHCFG"
+              echo '[url "ssh://git@gh-core/nuovogoat/universal_core"]'
+              echo '    insteadOf = https://github.com/nuovogoat/universal_core'
+              echo '[url "ssh://git@gh-connect/nuovogoat/open_code_ai_connect"]'
+              echo '    insteadOf = https://github.com/nuovogoat/open_code_ai_connect'
+            fi
           } > "$GITCFG"
           export GIT_CONFIG_GLOBAL="$GITCFG"
           "$pythonLocation/python.exe" -m pip install --upgrade pip

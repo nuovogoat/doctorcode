@@ -167,7 +167,9 @@ Android build (Gradle in `android/`):
 CI (self-hosted Windows runner):
 
 - `github.com`, `objects.githubusercontent.com` — pinned actions, repository
-  traffic, on-demand Python builds for the toolcache.
+  traffic, on-demand Python builds for the toolcache; private git dependencies
+  are cloned over git+ssh (`github.com` port 22) with the read-only deploy
+  keys described under Verification and gates.
 - `pypi.org`, `files.pythonhosted.org` — Python dependencies.
 - `aka.ms`, `download.visualstudio.microsoft.com` — Microsoft OpenJDK 17.
 - `dl.google.com` — Android cmdline-tools, platform 35, build-tools 35.0.0.
@@ -193,14 +195,22 @@ on the self-hosted Windows runner described in [RUNNERS.md](RUNNERS.md); the
 repository itself neither installs nor registers runners.
 
 The Python dependencies `universal_core` and `open_code_ai_connect` are private
-git repositories, so CI additionally requires the `CI_DEPENDENCIES_TOKEN`
-Actions secret: a fine-grained PAT with **Contents: read** on both. Without it
-the Install step fails fast with an explicit instruction instead of hanging the
-runner on a credential prompt. Set it with:
+git repositories, so the CI Install step authenticates with read-only deploy
+keys stored as Actions secrets: `CI_DEPLOY_KEY_CORE` and
+`CI_DEPLOY_KEY_CONNECT` (the `doctorcode-ci (read-only)` keys in each
+dependency repo's Settings → Deploy keys). Alternative: `CI_DEPENDENCIES_TOKEN`,
+a fine-grained PAT with **Contents: read** on both repos — if present, it takes
+precedence. Without any of these the Install step fails fast with an explicit
+instruction instead of hanging the runner on a credential prompt. Set or rotate
+them with:
 
 ```powershell
-gh secret set CI_DEPENDENCIES_TOKEN --repo nuovogoat/doctorcode
+gh secret set CI_DEPLOY_KEY_CORE --repo nuovogoat/doctorcode
+gh secret set CI_DEPLOY_KEY_CONNECT --repo nuovogoat/doctorcode
 ```
+
+Revoking access means deleting the `doctorcode-ci (read-only)` deploy key from
+the corresponding dependency repository (no personal credentials are involved).
 
 ## Documentation
 

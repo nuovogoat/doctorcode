@@ -353,7 +353,10 @@ class SettingsWindow(tk.Toplevel):
             try:
                 models = future.result()
             except LLMError as exc:
-                status.configure(text=self.t("settings.models_failed", error=exc))
+                if exc.code == "MODELS_MODULE_MISSING":
+                    status.configure(text=self.t("models.module_missing"))
+                else:
+                    status.configure(text=self.t("settings.models_failed", error=exc))
                 return
             except Exception as exc:
                 status.configure(text=self.t("settings.models_failed", error=exc))

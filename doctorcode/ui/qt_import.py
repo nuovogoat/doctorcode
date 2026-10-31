@@ -41,6 +41,7 @@ class KimiImportDialog(QDialog):
         self.service = main.kimi_import
         self.candidates: list[KimiCandidate] = []
         self._busy = False
+        self._target: Path | None = None
         self.resize(1000, 660)
         self._build()
         self.apply_language()
@@ -60,6 +61,22 @@ class KimiImportDialog(QDialog):
         self.browse.clicked.connect(self.choose_source)
         source_row.addWidget(self.browse)
         layout.addLayout(source_row)
+
+        # Target project: migration works into ANY project — an explicit
+        # target overrides the project stored in every selected session.
+        target_row = QHBoxLayout()
+        self.target_label = QLabel("")
+        target_row.addWidget(self.target_label)
+        self.target = QLineEdit("")
+        self.target.setReadOnly(True)
+        target_row.addWidget(self.target, 1)
+        self.target_button = QPushButton("")
+        self.target_button.clicked.connect(self.choose_target)
+        target_row.addWidget(self.target_button)
+        self.target_reset = QPushButton("")
+        self.target_reset.clicked.connect(self.reset_target)
+        target_row.addWidget(self.target_reset)
+        layout.addLayout(target_row)
 
         self.table = QTableWidget(0, COLUMNS)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -97,8 +114,12 @@ class KimiImportDialog(QDialog):
         self.setWindowTitle(self.t("import.title"))
         self.hint.setText(self.t("import.hint"))
         self.browse.setText(self.t("import.choose_source"))
+        self.target_label.setText(self.t("import.target_label"))
+        self.target_button.setText(self.t("import.choose_target"))
+        self.target_reset.setText(self.t("import.target_reset"))
         self.import_button.setText(self.t("import.import_selected"))
         self.close_button.setText(self.t("dialog.close"))
+        self._render_target()
         headers = [
             "",
             self.t("import.column_title"),
@@ -111,6 +132,37 @@ class KimiImportDialog(QDialog):
 
     def t(self, key: str, **params: object) -> str:
         return self.main.translator.t(key, **params)
+
+    # -------------------------------------------------------- target project
+    def _render_target(self) -> None:
+        self.target.setText(
+            str(self._target)
+            if self._target is not None
+            else self.t("import.target_default")
+        )
+
+    def choose_target(self) -> None:
+        if self._busy:
+            return
+        initial = self.main.settings_store.settings.ui.last_project
+        initial_dir = (
+            str(self._target)
+            if self._target is not None
+            else (initial if initial and Path(initial).is_dir() else str(Path.home()))
+        )
+        folder = QFileDialog.getExistingDirectory(
+            self, self.t("import.choose_target"), initial_dir
+        )
+        if not folder:
+            return
+        path = Path(folder)
+        if path.is_dir():
+            self._target = path
+            self._render_target()
+
+    def reset_target(self) -> None:
+        self._target = None
+        self._render_target()
 
     # --------------------------------------------------------------- actions
     def choose_source(self) -> None:
@@ -243,8 +295,10 @@ class KimiImportDialog(QDialog):
         for candidate in selected:
             if not candidate.message_count:
                 continue
-            override: Path | None = None
-            if candidate.project_dir is None:
+            # An explicit target wins for every candidate; without one, only
+            # sessions whose stored project folder is gone ask for a folder.
+            override: Path | None = self._target
+            if override is None and candidate.project_dir is None:
                 override = self._ask_project(candidate)
                 if override is None:
                     continue

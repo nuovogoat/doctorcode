@@ -1,8 +1,12 @@
-"""Kimi Code session import through the shared open_code_ai_connect library.
+"""Kimi Code session import through the optional open_code_ai_connect module.
 
 The library owns parsing and the ``doctorcode.session`` v1 contract.  This
 module only decides where the verbatim snapshot is stored, which project tab
 receives the main-agent history, and how duplicate imports are suppressed.
+
+``open_code_ai_connect`` is a pluggable module (v2.7 §6.7): it is installed
+from the Modules window or the ``connect`` extra, and every entry point here
+fails with a typed error when it is missing.
 """
 
 from __future__ import annotations
@@ -15,22 +19,43 @@ from pathlib import Path
 from typing import Any
 
 from core_pack import atomic_write, ensure_private_dir
-from open_code_ai_connect import (
-    FORMAT,
-    SCHEMA_VERSION,
-    KimiMigrator,
-    KimiSourceError,
-)
 
 from doctorcode.engine.context import MessageRecord
 from doctorcode.engine.workspace import WorkspaceManager
+
+try:  # optional pluggable module: connect it via Tools -> Modules
+    from open_code_ai_connect import (
+        FORMAT,
+        SCHEMA_VERSION,
+        KimiMigrator,
+        KimiSourceError,
+    )
+except ImportError:  # pragma: no cover - exercised via monkeypatched None
+    FORMAT = ""
+    SCHEMA_VERSION = 0
+    KimiMigrator = None  # type: ignore[assignment,misc]
+    KimiSourceError = RuntimeError  # type: ignore[assignment,misc]
+
+CONNECT_HINT = (
+    "The optional module open_code_ai_connect is not installed. "
+    "Connect it in DoctorCode: Tools -> Modules."
+)
 
 _INVALID_FILENAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 SESSION_ROLES = {"user", "assistant", "tool"}
 
 
+def connect_available() -> bool:
+    """True when the optional open_code_ai_connect module is importable."""
+    return KimiMigrator is not None
+
+
 class KimiImportError(RuntimeError):
     """A source folder, project folder, or snapshot cannot be imported."""
+
+
+class ConnectModuleMissing(KimiImportError):
+    """The optional open_code_ai_connect module is not connected."""
 
 
 @dataclass(frozen=True)
@@ -78,12 +103,6 @@ def _candidate(snapshot: dict[str, Any]) -> KimiCandidate:
     codes = tuple(
         sorted({str(item.get("code")) for item in warnings if item.get("code")})
     )
-    existing = False
-    if project_path:
-        try:
-            existing = Path(project_path).is_dir()
-        except OSError:
-            existing = False
     return KimiCandidate(
         snapshot=snapshot,
         session_id=str(session.get("id") or ""),
@@ -95,7 +114,10 @@ def _candidate(snapshot: dict[str, Any]) -> KimiCandidate:
         warning_count=len(warnings),
         error_count=error_count,
         warning_codes=codes,
-        importable=bool(existing and message_count),
+        # Importable means "has main-agent history".  The target project is
+        # never a blocker: migration works from and into any project, and the
+        # UI lets the user pick a target folder for every candidate.
+        importable=bool(message_count),
     )
 
 
@@ -168,6 +190,8 @@ class KimiImportService:
         data_dir: Path,
         migrator: KimiMigrator | None = None,
     ) -> None:
+        if migrator is None and not connect_available():
+            raise ConnectModuleMissing(CONNECT_HINT)
         self.workspace = workspace
         self.root = Path(data_dir) / "imports" / "kimi"
         ensure_private_dir(str(self.root))

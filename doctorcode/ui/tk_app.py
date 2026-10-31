@@ -21,7 +21,7 @@ from typing import Any
 
 from doctorcode import __version__
 from doctorcode.engine.events import ActionEvent, ActionStatus
-from doctorcode.engine.kimi_import import KimiImportService
+from doctorcode.engine.kimi_import import ConnectModuleMissing, KimiImportService
 from doctorcode.engine.llm_client import LLMError, load_models
 from doctorcode.engine.session import AgentSession
 from doctorcode.engine.workspace import WorkspaceManager
@@ -136,10 +136,16 @@ class DoctorCodeApp:
             logger=self.logger,
         )
         self.workspace.subscribe_all(self._event_queue.put)
-        self.kimi_import = KimiImportService(
-            workspace=self.workspace,
-            data_dir=runtime.data_dir,
-        )
+        try:
+            self.kimi_import: KimiImportService | None = KimiImportService(
+                workspace=self.workspace,
+                data_dir=runtime.data_dir,
+            )
+        except ConnectModuleMissing:
+            # The migration module is optional: the menu entry stays and
+            # offers to connect it from the Modules window.
+            self.logger.warning("kimi_import.module_missing")
+            self.kimi_import = None
         self.approvals = ApprovalBroker()
         self.mobile_controller = MobileServerController(
             manager=self.workspace,
@@ -817,12 +823,21 @@ class DoctorCodeApp:
 
     def _models_failed(self, exc: Exception) -> None:
         self._fetching_models = False
-        text = self.t("gui.model_refresh_failed", error=exc)
         if isinstance(exc, LLMError):
             self.logger.warning(
                 "ui.models_failed",
                 context={"code": exc.code, "error": str(exc)},
             )
+            if exc.code == "MODELS_MODULE_MISSING":
+                self._set_status(self.t("models.module_missing"), error=True)
+                if messagebox.askyesno(
+                    self.t("modules.title"),
+                    self.t("models.module_missing_offer"),
+                    parent=self.root,
+                ):
+                    self.open_modules()
+                return
+        text = self.t("gui.model_refresh_failed", error=exc)
         self._set_status(text, error=True)
 
     def create_handoff(self) -> None:
@@ -870,6 +885,14 @@ class DoctorCodeApp:
         self.windows.open("mobile", lambda: MobileWindow(self))
 
     def open_kimi_import(self) -> None:
+        if self.kimi_import is None:
+            if messagebox.askyesno(
+                self.t("import.module_missing_title"),
+                self.t("import.module_missing_body"),
+                parent=self.root,
+            ):
+                self.open_modules()
+            return
         self.windows.open("kimi-import", lambda: KimiImportWindow(self))
 
     def open_about(self) -> None:

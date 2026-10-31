@@ -46,10 +46,15 @@ display.
 1. **Infrastructure comes from `core_pack`.** Configuration primitives, process
    execution, cancellation tokens, the executor, private directories, atomic
    writes, and structured logging are not reimplemented in DoctorCode.
-2. **Provider and migration protocols come from `open_code_ai_connect`.** The
-   shared library owns `ProviderManager` (base URL + API key, `GET /models`) and
-   `KimiMigrator` (`can_handle`, `convert`). DoctorCode owns only UI state,
-   snapshot storage, tab merging, and duplicate records.
+2. **Provider and migration protocols come from the optional
+   `open_code_ai_connect` module.** The shared library owns `ProviderManager`
+   (base URL + API key, `GET /models`) and `KimiMigrator` (`can_handle`,
+   `convert`). DoctorCode owns only UI state, snapshot storage, tab merging,
+   and duplicate records. The module is pluggable (v2.7 §6.7): it is installed
+   from the Modules window or the `connect` extra, both consumers import it
+   behind a guard, and its absence surfaces as a typed
+   `ConnectModuleMissing`/`MODELS_MODULE_MISSING` error with a localized hint —
+   never as an ImportError at start-up.
 3. **Domain state is Pydantic.** `AppSettings`, `StoredSession`,
    `MessageRecord`, `HandoffSnapshot`, and `ActionEvent` validate at every
    persistence boundary. Unknown fields are rejected in settings and request

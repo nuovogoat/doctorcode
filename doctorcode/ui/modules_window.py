@@ -225,7 +225,7 @@ class ModulesWindow(tk.Toplevel):
         for spec in specs:
             if token.is_cancelled:
                 break
-            argv = pip_argv(action, spec.distribution)  # type: ignore[arg-type]
+            argv = pip_argv(action, spec.distribution, target=spec.target)  # type: ignore[arg-type]
             try:
                 result = run_process(
                     argv,

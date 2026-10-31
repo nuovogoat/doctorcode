@@ -17,11 +17,12 @@ The desktop is the compute host; the Android companion is the remote control.
   Key-Value, and Raw views. A “success” sentence cannot mask a failed status.
 - **No hardcoded models.** Any OpenAI-compatible endpoint works. Models are
   listed dynamically from the endpoint; writer and reviewer profiles are
-  selected in the UI. The catalogue is read by the shared
-  `open_code_ai_connect` library, which knows only a Base URL and an API key.
+  selected in the UI. The catalogue is read by the optional pluggable
+  `open_code_ai_connect` module, which knows only a Base URL and an API key.
 - **Kimi Code import.** Pick a `.kimi-code` data folder, preview every session,
-  and append selected main-agent histories to their project tabs. The original
-  session stays untouched; a verbatim universal snapshot is saved locally.
+  and append selected main-agent histories to any project tab — the original
+  one or a target you choose. The original session stays untouched; a verbatim
+  universal snapshot is saved locally.
 - **No-Watch mode.** Let the agent run and repair its own failures while you
   step away.
 - **Context handoff.** Switching models writes a JSON snapshot and continues
@@ -55,6 +56,10 @@ doctorcode_start.bat
 # Optional Qt view
 pip install -e ".[qt]"
 doctorcode_qt_start.bat
+
+# Optional pluggable module: model catalogue + Kimi migration
+# (included in ".[dev]"; also installable from Tools -> Modules in the GUI)
+pip install -e ".[connect]"
 ```
 
 The repository is MIT licensed. No GPL code is copied or linked.
@@ -109,6 +114,13 @@ paste the API key. **Refresh models** calls `GET {base_url}/models` through
 sorted, de-duplicated result. Nothing about a provider — host, name, or model
 identifier — is compiled into DoctorCode.
 
+`open_code_ai_connect` is an optional pluggable module (the model catalogue and
+the Kimi migration engine). Install it from **Tools → Modules** or with
+`pip install -e ".[connect]"`; without it DoctorCode still runs, and every
+entry point that needs it fails with a localized hint that offers to open the
+Modules window. Chat itself talks to the endpoint directly through the `openai`
+protocol client, so an existing model selection keeps working.
+
 The key is stored only in the local private settings file. It is not written
 into provider configuration files, import snapshots, logs, or the Android
 handoff; the companion receives only the public profile data.
@@ -121,8 +133,11 @@ Use **File → Import Kimi sessions…** in either desktop shell:
    works).
 2. DoctorCode scans every `sessions/<workspace>/session_*` tree without
    modifying it and shows title, project path, message count, and warnings.
-3. Select sessions and import. A session whose project folder is missing asks
-   for a replacement folder.
+3. Select sessions and import. Migration works **from and into any project**:
+   the *Target project* field overrides the project stored in the session for
+   every selected candidate; by default each session imports into its original
+   project, and a session whose project folder is missing asks for a
+   replacement folder.
 4. The full `doctorcode.session` v1 envelope is saved verbatim below
    `%LOCALAPPDATA%\DoctorCode\imports\kimi\`; only meaningful main-agent
    `user`, `assistant`, and `tool` messages are appended to the project tab.
@@ -176,7 +191,8 @@ Android companion runtime:
 Installation (`pip install`):
 
 - `github.com`, `codeload.github.com` — git dependencies `universal_core`
-  v0.8.2 and `open_code_ai_connect` v2.0.0.
+  v0.8.2 (core) and `open_code_ai_connect` v2.0.0 (optional `connect` extra,
+  also installed from the Modules window).
 - `pypi.org`, `files.pythonhosted.org` — PyPI packages.
 
 Android build (Gradle in `android/`):
@@ -216,15 +232,15 @@ commit-subject check, the Python suite, Ruff, `pip check`, and the Android
 on the self-hosted Windows runner described in [RUNNERS.md](RUNNERS.md); the
 repository itself neither installs nor registers runners.
 
-The Python dependencies `universal_core` and `open_code_ai_connect` are private
-git repositories, so the CI Install step authenticates with read-only deploy
-keys stored as Actions secrets: `CI_DEPLOY_KEY_CORE` and
-`CI_DEPLOY_KEY_CONNECT` (the `doctorcode-ci (read-only)` keys in each
-dependency repo's Settings → Deploy keys). Alternative: `CI_DEPENDENCIES_TOKEN`,
-a fine-grained PAT with **Contents: read** on both repos — if present, it takes
-precedence. Without any of these the Install step fails fast with an explicit
-instruction instead of hanging the runner on a credential prompt. Set or rotate
-them with:
+The Python dependencies `universal_core` (core) and `open_code_ai_connect`
+(optional `connect` extra, included in `dev`) are private git repositories, so
+the CI Install step authenticates with read-only deploy keys stored as Actions
+secrets: `CI_DEPLOY_KEY_CORE` and `CI_DEPLOY_KEY_CONNECT` (the
+`doctorcode-ci (read-only)` keys in each dependency repo's Settings → Deploy
+keys). Alternative: `CI_DEPENDENCIES_TOKEN`, a fine-grained PAT with
+**Contents: read** on both repos — if present, it takes precedence. Without any
+of these the Install step fails fast with an explicit instruction instead of
+hanging the runner on a credential prompt. Set or rotate them with:
 
 ```powershell
 gh secret set CI_DEPLOY_KEY_CORE --repo nuovogoat/doctorcode

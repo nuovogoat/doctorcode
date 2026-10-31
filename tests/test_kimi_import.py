@@ -11,6 +11,7 @@ import pytest
 from doctorcode.engine.context import SessionStore, StoredSession
 from doctorcode.engine.events import ActionStatus, ActionType
 from doctorcode.engine.kimi_import import (
+    ConnectModuleMissing,
     KimiImportError,
     KimiImportService,
     map_snapshot_messages,
@@ -383,7 +384,9 @@ def test_missing_project_keeps_the_snapshot_and_accepts_an_override(
     missing = tmp_path / "gone"
     write_kimi_session(tmp_path, project=missing)
     candidate = service.scan(tmp_path)[0]
-    assert candidate.importable is False
+    # Migration works from and into any project: a missing source project
+    # folder never blocks a session that has main-agent history.
+    assert candidate.importable is True
     assert candidate.project_dir is None
 
     with pytest.raises(KimiImportError, match="does not exist"):
@@ -397,6 +400,41 @@ def test_missing_project_keeps_the_snapshot_and_accepts_an_override(
     assert result.project_path == project.resolve()
     assert result.imported_messages == 3
     assert workspace.open_project(project).imports == [candidate.session_id]
+
+
+def test_import_into_any_project_overrides_the_session_project(
+    tmp_path: Path,
+    project: Path,
+    service: KimiImportService,
+    workspace: WorkspaceManager,
+) -> None:
+    """A session can migrate into ANY project, not only its original one."""
+    write_kimi_session(tmp_path, project=project, title="Move me")
+    other = tmp_path / "other_project"
+    other.mkdir()
+    candidate = service.scan(tmp_path)[0]
+    assert candidate.importable is True
+    assert candidate.project_dir == project.resolve()
+
+    result = service.import_snapshot(candidate.snapshot, project_path=other)
+
+    assert result.project_path == other.resolve()
+    assert result.imported_messages == 3
+    assert workspace.open_project(other).imports == [candidate.session_id]
+    # The original project tab was never opened by the import.
+    assert [session.project_path for session in workspace.list()] == [other.resolve()]
+
+
+def test_service_reports_a_missing_connect_module(
+    tmp_path: Path,
+    workspace: WorkspaceManager,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from doctorcode.engine import kimi_import as kimi_module
+
+    monkeypatch.setattr(kimi_module, "KimiMigrator", None)
+    with pytest.raises(ConnectModuleMissing, match="open_code_ai_connect"):
+        KimiImportService(workspace=workspace, data_dir=tmp_path / "data")
 
 
 def test_snapshot_without_messages_is_stored_but_not_opened(

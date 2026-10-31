@@ -12,10 +12,20 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from open_code_ai_connect import ProviderError, ProviderManager
 from openai import APIConnectionError, APIStatusError, APITimeoutError, AsyncOpenAI, OpenAIError
 
 from doctorcode.settings import ConnectionProfile
+
+try:  # optional pluggable module: connect it via Tools -> Modules
+    from open_code_ai_connect import ProviderError, ProviderManager
+except ImportError:  # pragma: no cover - exercised via monkeypatched None
+    ProviderError = None  # type: ignore[assignment,misc]
+    ProviderManager = None  # type: ignore[assignment,misc]
+
+CONNECT_HINT = (
+    "The optional module open_code_ai_connect is not installed. "
+    "Connect it in DoctorCode: Tools -> Modules."
+)
 
 _PROVIDER_CODES = {
     "INVALID_BASE_URL": "MODELS_BASE_URL",
@@ -165,6 +175,8 @@ async def load_models(
     blocks the event loop.  Only Base URL, API key, and timeout are passed; no
     provider or model is hardcoded.
     """
+    if ProviderManager is None:
+        raise LLMError("MODELS_MODULE_MISSING", CONNECT_HINT)
     try:
         manager = ProviderManager(profile.base_url, profile.api_key, timeout=timeout)
         models = await asyncio.to_thread(manager.list_models)

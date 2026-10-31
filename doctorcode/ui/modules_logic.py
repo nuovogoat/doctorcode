@@ -17,6 +17,9 @@ class ModuleSpec:
     label_key: str
     distribution: str
     extra: str
+    # Explicit pip requirement for distributions that are not on PyPI (the
+    # private git dependency); empty means "install by distribution name".
+    target: str = ""
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,16 @@ MODULES: tuple[ModuleSpec, ...] = (
         label_key="modules.dnd",
         distribution="tkinterdnd2",
         extra="dnd",
+    ),
+    ModuleSpec(
+        key="connect",
+        label_key="modules.connect",
+        distribution="open-code-ai-connect",
+        extra="connect",
+        target=(
+            "open-code-ai-connect @ "
+            "git+https://github.com/nuovogoat/open_code_ai_connect.git@v2.0.0"
+        ),
     ),
 )
 
@@ -78,14 +91,21 @@ def find_module(key: str) -> ModuleSpec:
     raise KeyError(key)
 
 
-def pip_argv(action: PackageAction, distribution: str, *, python: str | None = None) -> list[str]:
+def pip_argv(
+    action: PackageAction,
+    distribution: str,
+    *,
+    python: str | None = None,
+    target: str = "",
+) -> list[str]:
     python = python or sys.executable
     base = [python, "-m", "pip", "--disable-pip-version-check"]
     if action == "remove":
         return [*base, "uninstall", "--yes", distribution]
+    requirement = target or distribution
     if action == "update":
-        return [*base, "install", "--upgrade", distribution]
-    return [*base, "install", distribution]
+        return [*base, "install", "--upgrade", requirement]
+    return [*base, "install", requirement]
 
 
 def pip_available() -> bool:

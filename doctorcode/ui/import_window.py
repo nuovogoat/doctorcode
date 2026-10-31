@@ -24,6 +24,7 @@ class KimiImportWindow(tk.Toplevel):
         self.candidates: list[KimiCandidate] = []
         self._rows: dict[str, str] = {}
         self._busy = False
+        self._target: Path | None = None
         self._texts: list[tuple[Any, str]] = []
         self.geometry("980x620")
         self.transient(app.root)
@@ -61,6 +62,22 @@ class KimiImportWindow(tk.Toplevel):
         self.source_var = tk.StringVar(value="")
         source = ttk.Entry(outer, textvariable=self.source_var, state="readonly")
         source.pack(fill="x", pady=(8, 6))
+
+        # Target project: by default each session imports into the project
+        # stored in its snapshot, but migration works into ANY project — the
+        # explicit target below overrides every selected candidate.
+        target_row = ttk.Frame(outer)
+        target_row.pack(fill="x", pady=(0, 6))
+        self._label(target_row, "import.target_label", style="Muted.TLabel").pack(
+            side="left"
+        )
+        self.target_var = tk.StringVar(value="")
+        target_entry = ttk.Entry(target_row, textvariable=self.target_var, state="readonly")
+        target_entry.pack(side="left", fill="x", expand=True, padx=6)
+        self._button(target_row, "import.choose_target", self.choose_target).pack(
+            side="left", padx=(0, 6)
+        )
+        self._button(target_row, "import.target_reset", self.reset_target).pack(side="left")
 
         columns = ("title", "project", "messages", "warnings", "status")
         table = ttk.Frame(outer)
@@ -105,6 +122,41 @@ class KimiImportWindow(tk.Toplevel):
         self.tree.heading("messages", text=self.t("import.column_messages"))
         self.tree.heading("warnings", text=self.t("import.column_warnings"))
         self.tree.heading("status", text=self.t("import.column_status"))
+        self._render_target()
+
+    # -------------------------------------------------------- target project
+    def _render_target(self) -> None:
+        self.target_var.set(
+            str(self._target)
+            if self._target is not None
+            else self.t("import.target_default")
+        )
+
+    def choose_target(self) -> None:
+        if self._busy:
+            return
+        initial = self.app.settings_store.settings.ui.last_project
+        initial_dir = (
+            str(self._target)
+            if self._target is not None
+            else (initial if initial and Path(initial).is_dir() else str(Path.home()))
+        )
+        folder = filedialog.askdirectory(
+            parent=self,
+            title=self.t("import.choose_target"),
+            initialdir=initial_dir,
+            mustexist=True,
+        )
+        if not folder:
+            return
+        path = Path(folder)
+        if path.is_dir():
+            self._target = path
+            self._render_target()
+
+    def reset_target(self) -> None:
+        self._target = None
+        self._render_target()
 
     # --------------------------------------------------------------- actions
     def choose_source(self) -> None:
@@ -250,8 +302,10 @@ class KimiImportWindow(tk.Toplevel):
         for candidate in selected:
             if not candidate.message_count:
                 continue
-            override: Path | None = None
-            if candidate.project_dir is None:
+            # An explicit target wins for every candidate; without one, only
+            # sessions whose stored project folder is gone ask for a folder.
+            override: Path | None = self._target
+            if override is None and candidate.project_dir is None:
                 override = self._ask_project(candidate)
                 if override is None:
                     continue

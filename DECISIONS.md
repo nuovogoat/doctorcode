@@ -99,3 +99,29 @@ offending key or file, so the fix is mechanical.
 `pip check`, and the Android build remain separate jobs; the gate does not
 duplicate them.
 
+## D-008 — `open_code_ai_connect` is an optional pluggable module; Kimi migration targets any project
+
+**Decision:** the private `open_code_ai_connect` dependency moved from the core
+`dependencies` to the `connect` extra (kept inside `dev` so CI and developer
+installs still pull it through the deploy keys). It is listed in the Modules
+window with an explicit pinned git target because it is not on PyPI, and both
+consumers — `llm_client.load_models` and `KimiImportService` — import it behind
+a guard that raises typed errors (`MODELS_MODULE_MISSING`,
+`ConnectModuleMissing`) with a localized hint offering to open the Modules
+window. Separately, Kimi migration is no longer bound to the session's original
+project: a candidate is importable whenever it has main-agent history, and the
+import windows expose a *Target project* override that applies to every
+selected session.
+
+**Why:** the owner requires migration to work from any project and treats the
+private repository as a pluggable module (v2.7 §6.7) rather than a hard core
+dependency. A missing optional module must degrade to a typed, localized hint —
+never to an ImportError at start-up — and installing it must go through the
+Modules window, not manual pip instructions.
+
+**Consequence:** a bare `pip install -e .` yields a working app whose model
+catalogue and Kimi import stay disabled until the module is connected;
+chat with an already selected model keeps working because it speaks the
+OpenAI-compatible protocol directly. CI is unchanged: `.[dev]` still installs
+the module, so the deploy-key authentication path stays exercised.
+

@@ -103,7 +103,10 @@ async def _list_models(
     try:
         models = await load_models(profile, timeout=30.0)
     except LLMError as exc:
-        print(translator.t("cli.models_failed", error=exc), file=sys.stderr)
+        if exc.code == "MODELS_MODULE_MISSING":
+            print(translator.t("cli.models_module_missing"), file=sys.stderr)
+        else:
+            print(translator.t("cli.models_failed", error=exc), file=sys.stderr)
         return 1
     print(translator.t("cli.models", profile=role))
     if not models:

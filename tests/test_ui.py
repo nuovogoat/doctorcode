@@ -25,7 +25,7 @@ from doctorcode.ui.feed_model import (
     status_style,
     warning_text,
 )
-from doctorcode.ui.modules_logic import module_rows, pip_argv
+from doctorcode.ui.modules_logic import find_module, module_rows, pip_argv
 from doctorcode.ui.runner import AsyncRunner
 
 
@@ -98,6 +98,22 @@ def test_pip_argv_actions() -> None:
         "--yes",
         "PySide6",
     ]
+
+
+def test_connect_module_installs_from_its_pinned_target() -> None:
+    """The private git dependency installs by URL, not by PyPI name."""
+    spec = find_module("connect")
+    assert spec.distribution == "open-code-ai-connect"
+    assert spec.extra == "connect"
+    assert spec.target.startswith(
+        "open-code-ai-connect @ git+https://github.com/nuovogoat/open_code_ai_connect.git@v"
+    )
+    argv = pip_argv("install", spec.distribution, python="py", target=spec.target)
+    assert argv[-1] == spec.target
+    # Removing always uses the distribution name, never the git URL.
+    assert pip_argv("remove", spec.distribution, python="py", target=spec.target)[-1] == (
+        "open-code-ai-connect"
+    )
 
 
 def test_launcher_reads_hide_console_fail_safe(tmp_path: Path) -> None:

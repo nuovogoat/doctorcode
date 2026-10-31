@@ -53,8 +53,8 @@ from PySide6.QtWidgets import (
 from doctorcode import __version__
 from doctorcode.engine.events import ActionEvent, ActionStatus, ActionType
 from doctorcode.engine.feed import ActionFeed
-from doctorcode.engine.kimi_import import KimiImportService
-from doctorcode.engine.llm_client import load_models
+from doctorcode.engine.kimi_import import ConnectModuleMissing, KimiImportService
+from doctorcode.engine.llm_client import LLMError, load_models
 from doctorcode.engine.reviewer import ReviewerService
 from doctorcode.engine.session import AgentSession
 from doctorcode.engine.workspace import WorkspaceManager
@@ -675,7 +675,10 @@ class SettingsDialog(QDialog):
             )
 
         def failed(exc: Exception) -> None:
-            status.setText(self.t("settings.models_failed", error=exc))
+            if isinstance(exc, LLMError) and exc.code == "MODELS_MODULE_MISSING":
+                status.setText(self.t("models.module_missing"))
+            else:
+                status.setText(self.t("settings.models_failed", error=exc))
 
         FutureWatcher(self, future, done, failed)
 
@@ -1142,7 +1145,7 @@ class ModulesDialog(QDialog):
         for spec in specs:
             if token.is_cancelled:
                 break
-            argv = pip_argv(action, spec.distribution)  # type: ignore[arg-type]
+            argv = pip_argv(action, spec.distribution, target=spec.target)  # type: ignore[arg-type]
             try:
                 result = run_process(
                     argv,
@@ -1218,10 +1221,15 @@ class QtMainWindow(QMainWindow):
             logger=self.logger,
         )
         self.workspace.subscribe_all(self._event_queue.put)
-        self.kimi_import = KimiImportService(
-            workspace=self.workspace,
-            data_dir=runtime.data_dir,
-        )
+        try:
+            self.kimi_import: KimiImportService | None = KimiImportService(
+                workspace=self.workspace,
+                data_dir=runtime.data_dir,
+            )
+        except ConnectModuleMissing:
+            # Optional pluggable module: the menu entry offers to connect it.
+            self.logger.warning("kimi_import.module_missing")
+            self.kimi_import = None
         self.approvals = ApprovalBroker()
         self.mobile_controller = MobileServerController(
             manager=self.workspace,
@@ -1706,7 +1714,10 @@ class QtMainWindow(QMainWindow):
             )
 
         def failed(exc: Exception) -> None:
-            self.status.showMessage(self.t("gui.model_refresh_failed", error=exc), 8000)
+            if isinstance(exc, LLMError) and exc.code == "MODELS_MODULE_MISSING":
+                self.status.showMessage(self.t("models.module_missing"), 8000)
+            else:
+                self.status.showMessage(self.t("gui.model_refresh_failed", error=exc), 8000)
 
         FutureWatcher(self, future, done, failed)
 
@@ -1744,6 +1755,15 @@ class QtMainWindow(QMainWindow):
         MobileDialog(self).exec()
 
     def open_kimi_import(self) -> None:
+        if self.kimi_import is None:
+            answer = QMessageBox.question(
+                self,
+                self.t("import.module_missing_title"),
+                self.t("import.module_missing_body"),
+            )
+            if answer is QMessageBox.StandardButton.Yes:
+                self.open_modules()
+            return
         KimiImportDialog(self).exec()
 
     def open_about(self) -> None:

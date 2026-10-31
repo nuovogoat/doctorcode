@@ -172,6 +172,24 @@ def test_provider_errors_map_to_stable_llm_codes(
     assert "sk-secret" not in repr(info.value)
 
 
+def test_missing_connect_module_maps_to_a_typed_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The provider catalogue lives in an optional module; its absence is typed."""
+    from doctorcode.engine import llm_client
+
+    monkeypatch.setattr(llm_client, "ProviderManager", None)
+    profile = ConnectionProfile(
+        base_url="http://example.invalid/v1", api_key="", model="m"
+    )
+
+    with pytest.raises(LLMError) as info:
+        asyncio.run(llm_client.load_models(profile, timeout=1.0))
+
+    assert info.value.code == "MODELS_MODULE_MISSING"
+    assert "open_code_ai_connect" in str(info.value)
+
+
 @pytest.mark.parametrize(
     "base_url",
     ["", "example.com/v1", "http://example.com/v1/models", "ftp://example.com/v1"],

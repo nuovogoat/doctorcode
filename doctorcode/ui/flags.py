@@ -63,9 +63,8 @@ for y in range(_HEIGHT):
 # Red St George's cross (thinner, centred inside the white cross).
 for y in range(_HEIGHT):
     for x in range(_WIDTH):
-        if y == 5 or y == 6:
-            if 0 <= x < _WIDTH:
-                _EN[y][x] = _RED if (7 <= x <= 8) else _EN[y][x]
+        if (y == 5 or y == 6) and 0 <= x < _WIDTH:
+            _EN[y][x] = _RED if (7 <= x <= 8) else _EN[y][x]
         if 7 <= x <= 8:
             _EN[y][x] = _RED
 
@@ -73,15 +72,13 @@ for y in range(_HEIGHT):
 for i in range(min(_WIDTH, _HEIGHT)):
     # Top-left to bottom-right.
     tx, ty = i, int(i * _HEIGHT / _WIDTH)
-    if 0 <= tx < _WIDTH and 0 <= ty < _HEIGHT:
-        if _EN[ty][tx] == _BLUE:
-            _EN[ty][tx] = _WHITE
+    if 0 <= tx < _WIDTH and 0 <= ty < _HEIGHT and _EN[ty][tx] == _BLUE:
+        _EN[ty][tx] = _WHITE
     # Top-right to bottom-left.
     bx = _WIDTH - 1 - i
     by = int(i * _HEIGHT / _WIDTH)
-    if 0 <= bx < _WIDTH and 0 <= by < _HEIGHT:
-        if _EN[by][bx] == _BLUE:
-            _EN[by][bx] = _WHITE
+    if 0 <= bx < _WIDTH and 0 <= by < _HEIGHT and _EN[by][bx] == _BLUE:
+        _EN[by][bx] = _WHITE
 
 # Red saltire (St Patrick's cross) — thinner diagonal inside white saltire.
 for i in range(min(_WIDTH, _HEIGHT)):

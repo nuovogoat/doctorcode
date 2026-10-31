@@ -36,6 +36,22 @@ PROPERTY_VERSION = re.compile(r'PROPERTY_VERSION\s*=\s*b"([^"]+)"')
 ANDROID_VERSION = re.compile(r'versionName\s*=\s*"([^"]+)"')
 ANDROID_PLACEHOLDER = re.compile(r"%(?:\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?([a-zA-Z])")
 
+# v2.9 §0.10 / §8.2: canonical spellings of the product's own name.
+# Product name (UI, runtime, docs prose): "DoctorCode" (camel-case, no separators).
+# Package / distribution / CLI prefix: "doctorcode" (all-lowercase, no separators).
+# Anything else is a typo the gate must catch.
+PRODUCT_NAME_CANON = "DoctorCode"
+PACKAGE_NAME_CANON = "doctorcode"
+
+# Tokens that legitimately contain "doctor" + "code" with separators or in a
+# different case. These are NOT the product's own identifiers and must not be
+# flagged by the proper-name gate.
+PROPER_NAME_ALLOWED_TOKENS = (
+    "doctor_code_ai_connect",
+    "doctor-code-ai-connect",
+    "DoctorCode AI Connect",
+)
+
 
 @dataclass
 class Gate:
@@ -360,6 +376,65 @@ def check_commit_subject(message: str) -> Gate:
     return gate
 
 
+def check_proper_name(root: Path) -> Gate:
+    """v2.9 §0.10/§8.2: product identifiers match the canonical spelling.
+
+    Scans source, config, docs and tests for near-miss variants of the
+    product's own name. Legitimate tokens (dependency names, historical
+    citations) are allow-listed; everything else that looks like a typo
+    of ``DoctorCode`` / ``doctorcode`` is flagged.
+    """
+    gate = Gate("proper-name")
+    # Patterns that look like a misspelling of the product/package name.
+    # Each tuple: (regex matching the suspect token, human label).
+    suspects = [
+        # Product name typos: wrong case, missing/extra char, separator inserted.
+        (re.compile(r"\bDoct[oer]+[-_ ]?Code\b"), "product-name variant"),
+        (re.compile(r"\bDoctor[-_ ]?[Cc]ode\b"), "product-name variant"),
+        # Package/dist typos: lowercase with separator or wrong letter.
+        (re.compile(r"\bdoct[oer]+[-_]code\b"), "package-name variant"),
+        (re.compile(r"\bdoctor[-_]cod[e]?\b"), "package-name variant"),
+    ]
+    skip_dirs = {".git", ".venv", "venv", "__pycache__", ".pytest_cache",
+                 ".ruff_cache", "node_modules", "build", "dist", ".egg-info"}
+    skip_suffixes = {".pyc", ".pyo", ".png", ".jpg", ".jpeg", ".gif",
+                     ".ico", ".woff", ".woff2", ".ttf", ".eot"}
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        if any(part in skip_dirs for part in path.parts):
+            continue
+        if path.suffix.lower() in skip_suffixes:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8-sig", errors="replace")
+        except OSError:
+            continue
+        rel = _relative(root, path)
+        for pattern, label in suspects:
+            for match in pattern.finditer(text):
+                token = match.group(0)
+                # Allow-listed tokens are legitimate (dependency, historical).
+                if any(allowed in token for allowed in PROPER_NAME_ALLOWED_TOKENS):
+                    continue
+                # Exact canonical spellings are fine.
+                if token in (PRODUCT_NAME_CANON, PACKAGE_NAME_CANON):
+                    continue
+                # Historical DECISIONS citations may reference old names;
+                # only flag if the token is NOT inside a backtick-quoted
+                # historical reference (rough heuristic).
+                line_start = text.rfind("\n", 0, match.start()) + 1
+                line_end = text.find("\n", match.end())
+                if line_end == -1:
+                    line_end = len(text)
+                line = text[line_start:line_end]
+                if f"`{token}`" in line and "DECISIONS.md" in rel:
+                    continue
+                gate.failures.append(f"{rel}: {label} '{token}' (expected "
+                                     f"'{PRODUCT_NAME_CANON}' or '{PACKAGE_NAME_CANON}')")
+    return gate
+
+
 def run(root: Path) -> list[Gate]:
     return [
         check_i18n(root),
@@ -370,6 +445,7 @@ def run(root: Path) -> list[Gate]:
         check_bom(root),
         check_docs_links(root),
         check_android_manifest(root),
+        check_proper_name(root),
     ]
 
 

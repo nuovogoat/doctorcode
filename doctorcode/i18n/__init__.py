@@ -25,7 +25,7 @@ def detect_system_language() -> str:
 
     Deliberately does not use the deprecated ``locale`` module.  English maps to
     ``en`` and German to ``de``; everything else falls back to the owner's
-    language, Russian, per v2.7 §5.
+    language, Russian, per v2.8 §5.
     """
     try:
         if sys.platform == "win32":

@@ -1,10 +1,10 @@
-"""Kimi Code session import through the optional open_code_ai_connect module.
+"""Kimi Code session import through the optional doctor_code_ai_connect module.
 
 The library owns parsing and the ``doctorcode.session`` v1 contract.  This
 module only decides where the verbatim snapshot is stored, which project tab
 receives the main-agent history, and how duplicate imports are suppressed.
 
-``open_code_ai_connect`` is a pluggable module (v2.7 §6.7): it is installed
+``doctor_code_ai_connect`` is a pluggable module (v2.8 §6.7): it is installed
 from the Modules window or the ``connect`` extra, and every entry point here
 fails with a typed error when it is missing.
 """
@@ -24,7 +24,7 @@ from doctorcode.engine.context import MessageRecord
 from doctorcode.engine.workspace import WorkspaceManager
 
 try:  # optional pluggable module: connect it via Tools -> Modules
-    from open_code_ai_connect import (
+    from doctor_code_ai_connect import (
         FORMAT,
         SCHEMA_VERSION,
         KimiMigrator,
@@ -37,7 +37,7 @@ except ImportError:  # pragma: no cover - exercised via monkeypatched None
     KimiSourceError = RuntimeError  # type: ignore[assignment,misc]
 
 CONNECT_HINT = (
-    "The optional module open_code_ai_connect is not installed. "
+    "The optional module doctor_code_ai_connect is not installed. "
     "Connect it in DoctorCode: Tools -> Modules."
 )
 
@@ -46,7 +46,7 @@ SESSION_ROLES = {"user", "assistant", "tool"}
 
 
 def connect_available() -> bool:
-    """True when the optional open_code_ai_connect module is importable."""
+    """True when the optional doctor_code_ai_connect module is importable."""
     return KimiMigrator is not None
 
 
@@ -55,7 +55,7 @@ class KimiImportError(RuntimeError):
 
 
 class ConnectModuleMissing(KimiImportError):
-    """The optional open_code_ai_connect module is not connected."""
+    """The optional doctor_code_ai_connect module is not connected."""
 
 
 @dataclass(frozen=True)

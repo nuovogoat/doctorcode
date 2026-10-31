@@ -344,7 +344,7 @@ def check_android_manifest(root: Path) -> Gate:
 
 
 def check_commit_subject(message: str) -> Gate:
-    """Commit subjects are capped at 72 characters (v2.7 §8.2)."""
+    """Commit subjects are capped at 72 characters (v2.8 §8.2)."""
     gate = Gate("commit-msg")
     lines = [line.strip() for line in message.splitlines() if line.strip()]
     if not lines:

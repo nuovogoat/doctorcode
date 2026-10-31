@@ -433,7 +433,7 @@ def test_service_reports_a_missing_connect_module(
     from doctorcode.engine import kimi_import as kimi_module
 
     monkeypatch.setattr(kimi_module, "KimiMigrator", None)
-    with pytest.raises(ConnectModuleMissing, match="open_code_ai_connect"):
+    with pytest.raises(ConnectModuleMissing, match="doctor_code_ai_connect"):
         KimiImportService(workspace=workspace, data_dir=tmp_path / "data")
 
 

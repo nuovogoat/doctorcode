@@ -5,7 +5,7 @@ technical mess out of your way while leaving every raw fact one click away.
 The desktop is the compute host; the Android companion is the remote control.
 
 > Status: implementation is in progress. The repository follows the
-> universal_core `TOOLING_STANDARDS_ver2.7.md` contract. See
+> universal_core `TOOLING_STANDARDS_ver2.8.md` contract. See
 > `DECISIONS.md` for the documented GUI and pairing decisions.
 
 ## What it is
@@ -18,7 +18,7 @@ The desktop is the compute host; the Android companion is the remote control.
 - **No hardcoded models.** Any OpenAI-compatible endpoint works. Models are
   listed dynamically from the endpoint; writer and reviewer profiles are
   selected in the UI. The catalogue is read by the optional pluggable
-  `open_code_ai_connect` module, which knows only a Base URL and an API key.
+  `doctor_code_ai_connect` module, which knows only a Base URL and an API key.
 - **Kimi Code import.** Pick a `.kimi-code` data folder, preview every session,
   and append selected main-agent histories to any project tab — the original
   one or a target you choose. The original session stays untouched; a verbatim
@@ -110,11 +110,11 @@ pairing flow, API mapping, permissions, and troubleshooting are in the
 
 Open **Settings**, enter the Base URL of an OpenAI-compatible endpoint, and
 paste the API key. **Refresh models** calls `GET {base_url}/models` through
-`open_code_ai_connect.ProviderManager` and fills the model picker with the
+`doctor_code_ai_connect.ProviderManager` and fills the model picker with the
 sorted, de-duplicated result. Nothing about a provider — host, name, or model
 identifier — is compiled into DoctorCode.
 
-`open_code_ai_connect` is an optional pluggable module (the model catalogue and
+`doctor_code_ai_connect` is an optional pluggable module (the model catalogue and
 the Kimi migration engine). Install it from **Tools → Modules** or with
 `pip install -e ".[connect]"`; without it DoctorCode still runs, and every
 entry point that needs it fails with a localized hint that offers to open the
@@ -191,7 +191,7 @@ Android companion runtime:
 Installation (`pip install`):
 
 - `github.com`, `codeload.github.com` — git dependencies `universal_core`
-  v0.8.2 (core) and `open_code_ai_connect` v2.0.0 (optional `connect` extra,
+  v0.8.4 (core) and `doctor_code_ai_connect` v4.0.0 (optional `connect` extra,
   also installed from the Modules window).
 - `pypi.org`, `files.pythonhosted.org` — PyPI packages.
 
@@ -232,7 +232,7 @@ commit-subject check, the Python suite, Ruff, `pip check`, and the Android
 on the self-hosted Windows runner described in [RUNNERS.md](RUNNERS.md); the
 repository itself neither installs nor registers runners.
 
-The Python dependencies `universal_core` (core) and `open_code_ai_connect`
+The Python dependencies `universal_core` (core) and `doctor_code_ai_connect`
 (optional `connect` extra, included in `dev`) are private git repositories, so
 the CI Install step authenticates with read-only deploy keys stored as Actions
 secrets: `CI_DEPLOY_KEY_CORE` and `CI_DEPLOY_KEY_CONNECT` (the

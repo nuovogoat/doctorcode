@@ -24,7 +24,7 @@ classifiers = [
     "Topic :: Software Development :: Code Generators",
 ]
 dependencies = [
-    "core_pack @ git+https://github.com/nuovogoat/universal_core.git@v0.8.2",
+    "core_pack @ git+https://github.com/nuovogoat/universal_core.git@v0.8.4",
     "requests>=2.31,<3",
     "pydantic>=2.7,<3",
     "openai>=1.40,<3",
@@ -41,14 +41,14 @@ dnd = ["tkinterdnd2>=0.4,<1"]
 # migration engine.  Desktop users connect it from the Modules window; CI and
 # developer installs pull it through the dev extra below.
 connect = [
-    "open-code-ai-connect @ git+https://github.com/nuovogoat/open_code_ai_connect.git@v2.0.0",
+    "doctor-code-ai-connect @ git+https://github.com/nuovogoat/doctor_code_ai_connect.git@v4.0.0",
 ]
 dev = [
     "pytest>=8.0,<9",
     "pytest-asyncio>=0.24,<2",
     "httpx>=0.27,<1",
     "ruff>=0.9,<1",
-    "open-code-ai-connect @ git+https://github.com/nuovogoat/open_code_ai_connect.git@v2.0.0",
+    "doctor-code-ai-connect @ git+https://github.com/nuovogoat/doctor_code_ai_connect.git@v4.0.0",
 ]
 
 [project.scripts]

@@ -49,11 +49,11 @@ MODULES: tuple[ModuleSpec, ...] = (
     ModuleSpec(
         key="connect",
         label_key="modules.connect",
-        distribution="open-code-ai-connect",
+        distribution="doctor-code-ai-connect",
         extra="connect",
         target=(
-            "open-code-ai-connect @ "
-            "git+https://github.com/nuovogoat/open_code_ai_connect.git@v2.0.0"
+            "doctor-code-ai-connect @ "
+            "git+https://github.com/nuovogoat/doctor_code_ai_connect.git@v4.0.0"
         ),
     ),
 )

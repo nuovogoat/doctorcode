@@ -1,7 +1,8 @@
 # DoctorCode — decisions
 
-Architecture decisions that deviate from, or clarify, the v2.7 tooling standards.
-The canonical standard remains `TOOLING_STANDARDS_ver2.7.md`.
+Architecture decisions that deviate from, or clarify, the tooling standards.
+The canonical standard is `TOOLING_STANDARDS_ver2.8.md` (earlier decisions
+cite the v2.7 section numbering, which v2.8 preserves).
 
 ## D-001 — Tkinter is the default GUI; Qt is optional
 
@@ -45,10 +46,10 @@ companion; Android talks only to the DoctorCode server.
 **Consequence:** current builds do not provide OS-keychain storage. This is
 recorded as a known limitation, not silently hidden.
 
-## D-005 — Provider and Kimi migration logic live in `open_code_ai_connect`
+## D-005 — Provider and Kimi migration logic live in `doctor_code_ai_connect`
 
 **Decision:** DoctorCode imports `ProviderManager` and `KimiMigrator` from the
-MIT-licensed `open_code_ai_connect` library pinned at `v2.0.0`. DoctorCode owns
+MIT-licensed `doctor_code_ai_connect` library pinned at `v2.0.0`. DoctorCode owns
 only UI state, snapshot storage, project-tab merging, and duplicate-import
 records. It does not parse Kimi `wire.jsonl`, guess provider URLs, or maintain a
 second session schema.
@@ -99,9 +100,9 @@ offending key or file, so the fix is mechanical.
 `pip check`, and the Android build remain separate jobs; the gate does not
 duplicate them.
 
-## D-008 — `open_code_ai_connect` is an optional pluggable module; Kimi migration targets any project
+## D-008 — `doctor_code_ai_connect` is an optional pluggable module; Kimi migration targets any project
 
-**Decision:** the private `open_code_ai_connect` dependency moved from the core
+**Decision:** the private `doctor_code_ai_connect` dependency moved from the core
 `dependencies` to the `connect` extra (kept inside `dev` so CI and developer
 installs still pull it through the deploy keys). It is listed in the Modules
 window with an explicit pinned git target because it is not on PyPI, and both
@@ -124,4 +125,27 @@ catalogue and Kimi import stay disabled until the module is connected;
 chat with an already selected model keeps working because it speaks the
 OpenAI-compatible protocol directly. CI is unchanged: `.[dev]` still installs
 the module, so the deploy-key authentication path stays exercised.
+
+## D-009 — The connect dependency is renamed to `doctor_code_ai_connect` v4.0.0
+
+**Decision:** by owner directive the private dependency was renamed at the
+source: GitHub repository `nuovogoat/open_code_ai_connect` →
+`nuovogoat/doctor_code_ai_connect`, package/import name
+`open_code_ai_connect` → `doctor_code_ai_connect`, distribution
+`open-code-ai-connect` → `doctor-code-ai-connect`, version bumped to v4.0.0
+(major: the import name is a breaking change; the library API itself is
+unchanged since 2.0.0). DoctorCode imports `doctor_code_ai_connect`, and the
+`connect` extra plus the Modules-window pinned target now point at
+`git+https://github.com/nuovogoat/doctor_code_ai_connect.git@v4.0.0`.
+`core_pack` is bumped v0.8.2 → v0.8.4 because connect 4.0.0 requires it and
+two different direct-URL pins for one package are unresolvable by pip.
+This entry supersedes the naming and pins used in D-005 and D-008.
+
+**Why:** single DoctorCode brand across the ecosystem; the owner granted full
+rights to rename the tool everywhere, including its native repository.
+
+**Consequence:** deploy-key CI authentication survives the GitHub rename
+(repository ID is unchanged), but every working copy must reinstall
+`pip install -e ".[dev]"` to drop the old `open-code-ai-connect` distribution
+and pick up connect v4.0.0 with core_pack v0.8.4.
 

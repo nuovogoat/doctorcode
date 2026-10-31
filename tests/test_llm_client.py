@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import pytest
-from open_code_ai_connect import ProviderError
+from doctor_code_ai_connect import ProviderError
 
 from doctorcode.engine.llm_client import CompatibleChatClient, LLMError, load_models
 from doctorcode.settings import ConnectionProfile
@@ -187,7 +187,7 @@ def test_missing_connect_module_maps_to_a_typed_error(
         asyncio.run(llm_client.load_models(profile, timeout=1.0))
 
     assert info.value.code == "MODELS_MODULE_MISSING"
-    assert "open_code_ai_connect" in str(info.value)
+    assert "doctor_code_ai_connect" in str(info.value)
 
 
 @pytest.mark.parametrize(

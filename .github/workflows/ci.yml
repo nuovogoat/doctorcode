@@ -104,8 +104,8 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install
-        # Приватные git-зависимости (nuovogoat/universal_core v0.8.2 и
-        # nuovogoat/open_code_ai_connect v2.0.0; в PyPI их нет). GITHUB_TOKEN
+        # Приватные git-зависимости (nuovogoat/universal_core v0.8.4 и
+        # nuovogoat/doctor_code_ai_connect v4.0.0; в PyPI их нет). GITHUB_TOKEN
         # этого workflow соседние приватные репозитории читать не может, а
         # анонимный clone под сервисной учёткой повис на интерактивном запросе
         # Git Credential Manager до timeout-minutes (прогон 41133167646).
@@ -136,7 +136,7 @@ jobs:
           HAVE_KEYS=0
           if [ -n "${CI_DEPLOY_KEY_CORE:-}" ] && [ -n "${CI_DEPLOY_KEY_CONNECT:-}" ]; then HAVE_KEYS=1; fi
           if [ "$HAVE_PAT" -eq 0 ] && [ "$HAVE_KEYS" -eq 0 ]; then
-            echo "::error::No credentials for private git dependencies (nuovogoat/universal_core, nuovogoat/open_code_ai_connect). Set CI_DEPLOY_KEY_CORE + CI_DEPLOY_KEY_CONNECT (read-only deploy keys) or CI_DEPENDENCIES_TOKEN (fine-grained PAT, Contents:read on both repos): gh secret set <name> --repo nuovogoat/doctorcode"
+            echo "::error::No credentials for private git dependencies (nuovogoat/universal_core, nuovogoat/doctor_code_ai_connect). Set CI_DEPLOY_KEY_CORE + CI_DEPLOY_KEY_CONNECT (read-only deploy keys) or CI_DEPENDENCIES_TOKEN (fine-grained PAT, Contents:read on both repos): gh secret set <name> --repo nuovogoat/doctorcode"
             exit 1
           fi
           # Смешанные разделители $RUNNER_TEMP/... корректны и для MSYS bash,
@@ -179,8 +179,8 @@ jobs:
               export GIT_SSH_COMMAND="ssh -F $SSHCFG"
               echo '[url "ssh://git@gh-core/nuovogoat/universal_core"]'
               echo '    insteadOf = https://github.com/nuovogoat/universal_core'
-              echo '[url "ssh://git@gh-connect/nuovogoat/open_code_ai_connect"]'
-              echo '    insteadOf = https://github.com/nuovogoat/open_code_ai_connect'
+              echo '[url "ssh://git@gh-connect/nuovogoat/doctor_code_ai_connect"]'
+              echo '    insteadOf = https://github.com/nuovogoat/doctor_code_ai_connect'
             fi
           } > "$GITCFG"
           export GIT_CONFIG_GLOBAL="$GITCFG"

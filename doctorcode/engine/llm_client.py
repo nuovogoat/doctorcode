@@ -17,13 +17,13 @@ from openai import APIConnectionError, APIStatusError, APITimeoutError, AsyncOpe
 from doctorcode.settings import ConnectionProfile
 
 try:  # optional pluggable module: connect it via Tools -> Modules
-    from open_code_ai_connect import ProviderError, ProviderManager
+    from doctor_code_ai_connect import ProviderError, ProviderManager
 except ImportError:  # pragma: no cover - exercised via monkeypatched None
     ProviderError = None  # type: ignore[assignment,misc]
     ProviderManager = None  # type: ignore[assignment,misc]
 
 CONNECT_HINT = (
-    "The optional module open_code_ai_connect is not installed. "
+    "The optional module doctor_code_ai_connect is not installed. "
     "Connect it in DoctorCode: Tools -> Modules."
 )
 

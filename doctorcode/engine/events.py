@@ -80,6 +80,12 @@ class ActionEvent(BaseModel):
     raw_payload: str = ""
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
     duration_ms: float | None = Field(default=None, ge=0.0)
+    # Stable i18n key plus JSON-only parameters: UIs render the summary in the
+    # selected language while `human_summary` stays the English fallback for
+    # logs, the model context, and clients without the key (old saved events
+    # simply omit both fields and keep rendering the fallback).
+    summary_key: str = ""
+    summary_params: dict[str, JsonValue] = Field(default_factory=dict)
 
     @field_validator("timestamp")
     @classmethod
@@ -106,6 +112,8 @@ class ActionEvent(BaseModel):
         raw_payload: str = "",
         metadata: dict[str, JsonValue] | None = None,
         duration_ms: float | None = None,
+        summary_key: str | None = None,
+        summary_params: dict[str, JsonValue] | None = None,
     ) -> ActionEvent:
         """Return a completed copy while preserving identity and timestamp."""
         data = self.model_dump()
@@ -116,6 +124,10 @@ class ActionEvent(BaseModel):
                 "raw_payload": raw_payload,
                 "metadata": metadata if metadata is not None else self.metadata,
                 "duration_ms": duration_ms,
+                "summary_key": summary_key if summary_key is not None else self.summary_key,
+                "summary_params": (
+                    summary_params if summary_params is not None else self.summary_params
+                ),
             }
         )
         return ActionEvent.model_validate(data)

@@ -19,6 +19,7 @@ from doctorcode.i18n import Translator
 from doctorcode.runtime import AppRuntime, create_runtime
 from doctorcode.settings import SettingsStore
 from doctorcode.tools.base import ApprovalRequest
+from doctorcode.ui.feed_model import event_status_text, event_summary
 
 
 def _pre_language(argv: Sequence[str]) -> str:
@@ -71,8 +72,8 @@ def _print_event(translator: Translator, event: ActionEvent, *, json_mode: bool)
     print(
         translator.t(
             "cli.event",
-            status=event.status.value,
-            summary=event.human_summary,
+            status=event_status_text(event, translator),
+            summary=event_summary(event, translator),
         ),
         flush=True,
     )

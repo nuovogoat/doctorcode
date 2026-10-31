@@ -191,6 +191,67 @@ def test_i18n_packs_have_identical_keys_and_flags() -> None:
         assert f"language.flag.{language}" in messages
 
 
+def test_feed_rows_localize_for_selected_language() -> None:
+    from doctorcode.i18n import Translator
+
+    event = _event(summary_key="session.opened", summary_params={"name": "doctor_code"})
+    row = event_human_row(event, Translator("ru"))
+    assert row[1] == "Успех"
+    assert row[2] == "Инструмент"
+    assert row[3] == "Вкладка проекта открыта: doctor_code"
+    german = event_human_row(event, Translator("de"))
+    assert german[3] == "Projekt-Tab geöffnet: doctor_code"
+    # Without a translator the raw contract values stay available.
+    raw = event_human_row(event)
+    assert raw[1] == "SUCCESS"
+    assert raw[2] == "tool_call"
+    assert raw[3] == "Wrote a file."
+
+
+def test_legacy_events_without_summary_key_fall_back() -> None:
+    from doctorcode.i18n import Translator
+
+    row = event_human_row(_event(), Translator("ru"))
+    assert row[1] == "Успех"
+    assert row[3] == "Wrote a file."
+
+
+def test_onboarding_offers_settings_when_writer_unconfigured(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tk = pytest.importorskip("tkinter")
+    try:
+        probe = tk.Tk()
+    except tk.TclError as exc:
+        pytest.skip(f"Tk display is unavailable: {exc}")
+    probe.withdraw()
+    probe.destroy()
+
+    from doctorcode.ui import tk_app
+    from doctorcode.ui.tk_app import DoctorCodeApp
+
+    runtime = create_runtime(tmp_path / "data")
+    app = None
+    try:
+        app = DoctorCodeApp(runtime)
+        # Settings must be reachable straight from the toolbar.
+        assert any(key == "toolbar.settings" for _widget, key in app._text_refs)
+        bodies: list[str] = []
+
+        def fake_dialog(owner: object, body_key: str) -> object:
+            bodies.append(body_key)
+            return object()
+
+        monkeypatch.setattr(tk_app, "OnboardDialog", fake_dialog)
+        app._maybe_onboard()
+        assert bodies == ["onboard.body"]
+    finally:
+        if app is not None:
+            app.close(confirm=False)
+        else:
+            runtime.close()
+
+
 def test_qt_guard_reports_missing_optional_dependency(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

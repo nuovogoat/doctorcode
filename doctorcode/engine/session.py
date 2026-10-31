@@ -106,6 +106,8 @@ class AgentSession:
                     action_type=ActionType.SESSION,
                     status=ActionStatus.SUCCESS,
                     human_summary=f"Project tab opened: {self.project_name}",
+                    summary_key="session.opened",
+                    summary_params={"name": self.project_name},
                     raw_payload=str(self.project_path),
                     metadata={
                         "project_path": str(self.project_path),
@@ -149,6 +151,7 @@ class AgentSession:
                     if enabled
                     else "No-Watch mode disabled: destructive actions ask first."
                 ),
+                summary_key="session.auto_on" if enabled else "session.auto_off",
                 metadata={"auto_mode": bool(enabled)},
             )
         )
@@ -189,6 +192,8 @@ class AgentSession:
                     f"Imported {count} message(s) from external session "
                     f"{title or import_id}."
                 ),
+                summary_key="session.imported",
+                summary_params={"count": count, "title": title or import_id},
                 raw_payload=str(snapshot_path) if snapshot_path else "",
                 metadata={
                     "import_id": import_id,
@@ -294,6 +299,7 @@ class AgentSession:
                     action_type=ActionType.ERROR,
                     status=ActionStatus.FAILURE,
                     human_summary="Run stopped by user.",
+                    summary_key="session.run_stopped",
                     metadata={"cancelled": True},
                 )
             )
@@ -307,6 +313,7 @@ class AgentSession:
                     action_type=ActionType.ERROR,
                     status=ActionStatus.FAILURE,
                     human_summary="Run stopped by user.",
+                    summary_key="session.run_stopped",
                     metadata={"cancelled": True},
                 )
             )
@@ -321,6 +328,8 @@ class AgentSession:
                     action_type=ActionType.ERROR,
                     status=ActionStatus.FAILURE,
                     human_summary=f"Session error: {type(exc).__name__}: {exc}",
+                    summary_key="session.error",
+                    summary_params={"error_type": type(exc).__name__, "error": str(exc)},
                     raw_payload=repr(exc),
                     metadata={"error_type": type(exc).__name__},
                 )
@@ -352,6 +361,7 @@ class AgentSession:
                     "Writer endpoint is not configured. Open Settings and choose a "
                     "base URL, model, and optional API key."
                 ),
+                summary_key="session.config_missing",
                 metadata={"error_code": code, "settings_required": True},
             )
         )
@@ -427,6 +437,13 @@ class AgentSession:
                     f"{len(snapshot.messages)} messages and "
                     f"{len(snapshot.workspace.changed_files)} changed file(s) saved."
                 ),
+                summary_key="handoff.switched",
+                summary_params={
+                    "from_model": previous or "(none)",
+                    "to_model": new_model,
+                    "messages": len(snapshot.messages),
+                    "files": len(snapshot.workspace.changed_files),
+                },
                 raw_payload=str(snapshot_path),
                 metadata={
                     "from_model": previous,
@@ -451,6 +468,8 @@ class AgentSession:
                 action_type=ActionType.HANDOFF,
                 status=ActionStatus.SUCCESS,
                 human_summary=f"Handoff snapshot saved for {self.project_name}.",
+                summary_key="handoff.saved",
+                summary_params={"name": self.project_name},
                 raw_payload=str(path),
                 metadata={"snapshot_path": str(path), "reason": reason},
             )

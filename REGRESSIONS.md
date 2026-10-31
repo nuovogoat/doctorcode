@@ -14,3 +14,5 @@ a linked test file/marker.
 | R-006 | Re-importing the same Kimi session into the same project must not duplicate history. | `tests/test_kimi_import.py::test_import_is_idempotent_for_the_same_project` |
 | R-007 | Existing project session files without an `imports` field must still load. | `tests/test_kimi_import.py::test_old_session_files_without_imports_still_load` |
 | R-008 | A failed model-catalogue request must stay a typed `LLMError` and must not leak the key. | `tests/test_llm_client.py::test_http_error_maps_status_and_never_leaks_the_key` |
+| R-009 | With Russian selected the feed showed raw English statuses, action kinds and summaries, and a missing `feed.action` header key. | `tests/test_ui.py::test_feed_rows_localize_for_selected_language` |
+| R-010 | An unconfigured writer failed silently: Settings were only reachable from the menu and no onboarding explained how to connect a model or pick a theme. | `tests/test_ui.py::test_onboarding_offers_settings_when_writer_unconfigured` |

@@ -114,6 +114,8 @@ def list_files(args: ListFilesArgs, ctx: ToolContext) -> ToolOutcome:
             "truncated": len(rows) >= args.max_results,
         },
         action_type=ActionType.TOOL_CALL,
+        summary_key="tool.found",
+        summary_params={"count": len(rows), "pattern": args.pattern},
     )
 
 
@@ -153,6 +155,8 @@ def read_file(args: ReadFileArgs, ctx: ToolContext) -> ToolOutcome:
             "sha256": hashlib.sha256(raw).hexdigest(),
         },
         action_type=ActionType.READ_FILE,
+        summary_key="tool.read",
+        summary_params={"lines": len(selected), "path": args.path},
     )
 
 
@@ -174,6 +178,7 @@ def write_file(args: WriteFileArgs, ctx: ToolContext) -> ToolOutcome:
             "Write cancelled by the user.",
             metadata={"path": args.path, "denied": True},
             action_type=ActionType.WRITE_FILE,
+            summary_key="tool.write_denied",
         )
     existed = target.exists()
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -188,6 +193,8 @@ def write_file(args: WriteFileArgs, ctx: ToolContext) -> ToolOutcome:
             "sha256": hashlib.sha256(encoded).hexdigest(),
         },
         action_type=ActionType.WRITE_FILE,
+        summary_key="tool.write_overwrote" if existed else "tool.write_created",
+        summary_params={"path": args.path},
     )
 
 
@@ -218,6 +225,7 @@ def replace_in_file(args: ReplaceInFileArgs, ctx: ToolContext) -> ToolOutcome:
             "Edit cancelled by the user.",
             metadata={"path": args.path, "denied": True},
             action_type=ActionType.WRITE_FILE,
+            summary_key="tool.edit_denied",
         )
     updated = text.replace(args.old_text, args.new_text, args.count)
     atomic_write(str(target), updated.encode("utf-8"))
@@ -230,6 +238,8 @@ def replace_in_file(args: ReplaceInFileArgs, ctx: ToolContext) -> ToolOutcome:
             "sha256": hashlib.sha256(updated.encode("utf-8")).hexdigest(),
         },
         action_type=ActionType.WRITE_FILE,
+        summary_key="tool.replaced",
+        summary_params={"count": args.count, "path": args.path},
     )
 
 

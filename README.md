@@ -59,6 +59,28 @@ doctorcode_qt_start.bat
 
 The repository is MIT licensed. No GPL code is copied or linked.
 
+## Connecting an AI model and themes
+
+DoctorCode ships no built-in providers: it works with any OpenAI-compatible
+endpoint that you configure yourself.
+
+1. Open **Settings** — the toolbar button (or the menu, or `Ctrl+,`).
+2. In the **Writer** section enter the endpoint *Base URL* (for example
+   `https://api.example.com/v1`) and the *API key* if the endpoint needs one.
+3. Press **Fetch models**: DoctorCode calls `GET {base_url}/models` and fills
+   the list. Save the settings.
+4. Choose a model in the toolbar list for the active project tab. The
+   **Reviewer** section configures the second, read-only profile the same way.
+
+Until a Base URL is entered, a start-up hint window repeats these steps, and
+the model list shows a "model not configured" placeholder instead of looking
+broken. API keys stay in the local settings file and are never sent to the
+Android companion.
+
+The same Settings window switches the **Theme** between **Dark** and
+**Light**; the change applies immediately to every open window. The interface
+language (ru/en/de) switches with the flag buttons in the toolbar.
+
 ## Android companion
 
 The companion requires Android 15 (API 35) and is a separate Gradle project in

@@ -9,7 +9,10 @@ from tkinter import ttk
 from doctorcode.engine.events import ActionEvent
 from doctorcode.i18n import Translator
 from doctorcode.ui.feed_model import (
+    event_action_text,
     event_human_row,
+    event_status_text,
+    event_summary,
     event_time,
     key_value_rows,
     raw_text,
@@ -168,6 +171,9 @@ class EventFeedView(ttk.Frame):
 
     def apply_language(self) -> None:
         self._retranslate()
+        # Row cells hold rendered text, so a language switch must re-render
+        # them from the stable event keys, not only the headers.
+        self.set_events(list(self._events.values()))
 
     def set_events(self, events: Iterable[ActionEvent]) -> None:
         selected = self.selected_event_id
@@ -186,7 +192,7 @@ class EventFeedView(ttk.Frame):
         selected = self.selected_event_id
         follow = selected is None or selected == self._last_id
         status_tag = status_style(event)
-        values = event_human_row(event)
+        values = event_human_row(event, self.translator)
         if exists and self.human_tree.exists(event.event_id):
             self.human_tree.item(event.event_id, values=values, tags=(status_tag,))
             if selected == event.event_id:
@@ -202,7 +208,7 @@ class EventFeedView(ttk.Frame):
             "",
             "end",
             iid=event.event_id,
-            values=event_human_row(event),
+            values=event_human_row(event, self.translator),
             tags=(status_style(event),),
         )
         self._last_id = event.event_id
@@ -251,8 +257,10 @@ class EventFeedView(ttk.Frame):
         warning = warning_text(event, self.translator)
         self.warning_label.configure(text=warning)
         details = (
-            f"{event.status.value} | {event.action_type.value} | {event_time(event)}\n\n"
-            f"{event.human_summary}"
+            f"{event_status_text(event, self.translator)} | "
+            f"{event_action_text(event, self.translator)} | "
+            f"{event_time(event)}\n\n"
+            f"{event_summary(event, self.translator)}"
         )
         if event.duration_ms is not None:
             details += f"\n\n{event.duration_ms:.0f} ms"

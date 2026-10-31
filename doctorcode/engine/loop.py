@@ -67,6 +67,8 @@ class AgentLoop:
         *,
         raw: str = "",
         metadata: dict[str, Any] | None = None,
+        summary_key: str = "",
+        summary_params: dict[str, Any] | None = None,
     ) -> ActionEvent:
         event = ActionEvent(
             session_id=self.session_id,
@@ -75,6 +77,8 @@ class AgentLoop:
             human_summary=summary,
             raw_payload=raw,
             metadata=metadata or {},
+            summary_key=summary_key,
+            summary_params=summary_params or {},
         )
         self.feed.append(event)
         return event
@@ -118,6 +122,8 @@ class AgentLoop:
                     ActionType.LLM_CALL,
                     f"Waiting for model response (step {iteration})…",
                     metadata={"model": model, "step": iteration},
+                    summary_key="loop.waiting",
+                    summary_params={"step": iteration},
                 )
                 try:
                     turn = await client.complete(
@@ -129,6 +135,7 @@ class AgentLoop:
                         call_event.finalize(
                             status=ActionStatus.FAILURE,
                             human_summary="Model request cancelled by user.",
+                            summary_key="loop.llm_cancelled",
                             duration_ms=(time.monotonic() - started) * 1000.0,
                         )
                     )
@@ -138,6 +145,8 @@ class AgentLoop:
                         call_event.finalize(
                             status=ActionStatus.FAILURE,
                             human_summary=f"Model request failed: {exc}",
+                            summary_key="loop.llm_failed",
+                            summary_params={"error": str(exc)},
                             raw_payload=str(exc),
                             metadata={
                                 "model": model,
@@ -155,6 +164,8 @@ class AgentLoop:
                         call_event.finalize(
                             status=ActionStatus.FAILURE,
                             human_summary=f"Unexpected model client error: {type(exc).__name__}",
+                            summary_key="loop.client_error",
+                            summary_params={"error_type": type(exc).__name__},
                             raw_payload=repr(exc),
                             metadata={"model": model, "step": iteration},
                             duration_ms=(time.monotonic() - started) * 1000.0,
@@ -170,6 +181,11 @@ class AgentLoop:
                             f"Model responded in {duration / 1000:.1f}s"
                             f" ({len(turn.tool_calls)} tool call(s))."
                         ),
+                        summary_key="loop.llm_ok",
+                        summary_params={
+                            "seconds": round(duration / 1000, 1),
+                            "calls": len(turn.tool_calls),
+                        },
                         raw_payload=turn.raw_payload,
                         metadata={
                             "model": model,
@@ -192,6 +208,7 @@ class AgentLoop:
                                 action_type=ActionType.ERROR,
                                 status=ActionStatus.FAILURE,
                                 human_summary="The model returned an empty final answer.",
+                                summary_key="loop.empty_answer",
                                 raw_payload=turn.raw_payload,
                                 metadata={"model": model, "step": iteration},
                             )
@@ -252,6 +269,7 @@ class AgentLoop:
                     action_type=ActionType.ERROR,
                     status=ActionStatus.FAILURE,
                     human_summary="Run stopped by user.",
+                    summary_key="session.run_stopped",
                     metadata={"cancelled": True},
                 )
             )
@@ -266,6 +284,8 @@ class AgentLoop:
                     f"Stopped after {self.agent_settings.max_iterations} model steps; "
                     "the iteration limit was reached."
                 ),
+                summary_key="loop.max_iterations",
+                summary_params={"limit": self.agent_settings.max_iterations},
                 metadata={"max_iterations": self.agent_settings.max_iterations},
             )
         )
@@ -283,6 +303,8 @@ class AgentLoop:
             f"Running tool {name}…",
             raw=json.dumps(arguments, ensure_ascii=False, indent=2),
             metadata={"tool": name, "arguments": arguments},
+            summary_key="loop.tool_running",
+            summary_params={"name": name},
         )
         started = time.monotonic()
         try:
@@ -294,6 +316,8 @@ class AgentLoop:
                 start.finalize(
                     status=ActionStatus.FAILURE,
                     human_summary=f"{name} cancelled by user.",
+                    summary_key="loop.tool_cancelled",
+                    summary_params={"name": name},
                     metadata={"tool": name, "cancelled": True},
                     duration_ms=(time.monotonic() - started) * 1000.0,
                 )
@@ -304,6 +328,8 @@ class AgentLoop:
                 start.finalize(
                     status=ActionStatus.FAILURE,
                     human_summary=f"{name} rejected: {exc}",
+                    summary_key="loop.tool_rejected",
+                    summary_params={"name": name, "error": str(exc)},
                     raw_payload=str(exc),
                     metadata={"tool": name, **exc.metadata},
                     duration_ms=(time.monotonic() - started) * 1000.0,
@@ -316,6 +342,8 @@ class AgentLoop:
                 status=outcome.status,
                 human_summary=outcome.human_summary,
                 raw_payload=outcome.raw_payload,
+                summary_key=outcome.summary_key,
+                summary_params=outcome.summary_params,
                 metadata={
                     **outcome.metadata,
                     "tool": name,

@@ -64,6 +64,7 @@ def _run(command: str, ctx: ToolContext, *, action_type: ActionType) -> ToolOutc
             "Command cancelled by the user.",
             metadata={"command": command, "denied": True},
             action_type=action_type,
+            summary_key="tool.command_denied",
         )
 
     started = time.monotonic()
@@ -111,6 +112,8 @@ def _run(command: str, ctx: ToolContext, *, action_type: ActionType) -> ToolOutc
             raw=payload,
             metadata=metadata,
             action_type=action_type,
+            summary_key="tool.command_timeout",
+            summary_params={"seconds": ctx.command_timeout_seconds},
         )
     if result.returncode != 0:
         tail = stderr.strip().splitlines()[-1][:300] if stderr.strip() else ""
@@ -119,12 +122,16 @@ def _run(command: str, ctx: ToolContext, *, action_type: ActionType) -> ToolOutc
             raw=payload,
             metadata=metadata,
             action_type=action_type,
+            summary_key="tool.command_failed",
+            summary_params={"code": result.returncode},
         )
     return ToolOutcome.success(
         f"Command completed successfully (exit 0) in {duration_ms / 1000:.1f}s.",
         raw=payload,
         metadata=metadata,
         action_type=action_type,
+        summary_key="tool.command_ok",
+        summary_params={"seconds": round(duration_ms / 1000, 1)},
     )
 
 

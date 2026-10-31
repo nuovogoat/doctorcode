@@ -71,7 +71,10 @@ from doctorcode.settings import (
 )
 from doctorcode.ui.approval import ApprovalBroker
 from doctorcode.ui.feed_model import (
+    event_action_text,
     event_human_row,
+    event_status_text,
+    event_summary,
     key_value_rows,
     raw_text,
     status_style,
@@ -277,6 +280,10 @@ class QtProjectTab(QWidget):
             [t("feed.time"), t("feed.status"), t("feed.action"), t("feed.summary")]
         )
         self.kv_table.setHorizontalHeaderLabels([t("feed.key_value"), t("feed.details")])
+        selected = self._selected_id()
+        self.set_events(list(self._events.values()))
+        if selected and selected in self._row_by_id:
+            self.table.selectRow(self._row_by_id[selected])
         self.refresh_state()
         self._render_selected()
 
@@ -292,7 +299,7 @@ class QtProjectTab(QWidget):
         if event.event_id in self._row_by_id:
             row = self._row_by_id[event.event_id]
             self._events[event.event_id] = event
-            for column, value in enumerate(event_human_row(event)):
+            for column, value in enumerate(event_human_row(event, self.translator)):
                 self.table.setItem(row, column, self._item(value))
             self._paint_row(row, event)
             if self._selected_id() == event.event_id:
@@ -311,7 +318,7 @@ class QtProjectTab(QWidget):
         self.table.insertRow(row)
         self._events[event.event_id] = event
         self._row_by_id[event.event_id] = row
-        for column, value in enumerate(event_human_row(event)):
+        for column, value in enumerate(event_human_row(event, self.translator)):
             item = self._item(value)
             if column == 0:
                 item.setData(Qt.ItemDataRole.UserRole, event.event_id)
@@ -368,8 +375,9 @@ class QtProjectTab(QWidget):
         self.warning_label.setText(warning_text(event, self.translator))
         duration = f"\n\n{event.duration_ms:.0f} ms" if event.duration_ms is not None else ""
         self.details.setPlainText(
-            f"{event.status.value} | {event.action_type.value}\n\n"
-            f"{event.human_summary}{duration}"
+            f"{event_status_text(event, self.translator)} | "
+            f"{event_action_text(event, self.translator)}\n\n"
+            f"{event_summary(event, self.translator)}{duration}"
         )
         self.raw.setPlainText(raw_text(event, self.translator))
         rows = key_value_rows(event)
@@ -851,6 +859,16 @@ class ReviewerDialog(QDialog):
                         f"Reviewer analysed the material with {review.model or 'the reviewer model'}."
                         if review.status is ActionStatus.SUCCESS
                         else f"Review failed: {review.error_code or 'unknown error'}."
+                    ),
+                    summary_key=(
+                        "review.done"
+                        if review.status is ActionStatus.SUCCESS
+                        else "review.failed"
+                    ),
+                    summary_params=(
+                        {"model": review.model or ""}
+                        if review.status is ActionStatus.SUCCESS
+                        else {"error": review.error_code or ""}
                     ),
                     raw_payload=review.text or review.raw_payload,
                     metadata={"model": review.model, "read_only": True},

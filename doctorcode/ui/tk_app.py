@@ -36,7 +36,7 @@ from doctorcode.ui.project_tab import ProjectTab
 from doctorcode.ui.reviewer_window import ReviewerWindow
 from doctorcode.ui.runner import AsyncRunner
 from doctorcode.ui.settings_window import AboutWindow, SettingsWindow
-from doctorcode.ui.theme import apply_theme
+from doctorcode.ui.theme import apply_theme, configure_text
 from doctorcode.ui.windows import WindowManager
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,55 @@ def _create_root() -> tk.Tk:
     except ImportError:
         return tk.Tk()
     return TkinterDnD.Tk()
+
+
+class OnboardDialog(tk.Toplevel):
+    """Non-modal first-run guidance: how to connect a model and pick a theme.
+
+    Shown once per launch while the writer endpoint has no Base URL.  Closing
+    the window is equivalent to pressing "Later".
+    """
+
+    def __init__(self, app: DoctorCodeApp, body_key: str) -> None:
+        super().__init__(app.root)
+        self.app = app
+        self.translator = app.translator
+        self.title(app.t("onboard.title"))
+        self.geometry("620x360")
+        self.minsize(480, 280)
+        self.transient(app.root)
+        colors = app.colors
+        self.configure(background=colors["bg"])
+        frame = ttk.Frame(self, style="TFrame", padding=18)
+        frame.pack(fill="both", expand=True)
+        self.body = tk.Text(frame, height=12, wrap="word")
+        self.body.pack(fill="both", expand=True)
+        configure_text(self.body, colors)
+        self.body.configure(state="normal")
+        self.body.insert("1.0", app.t(body_key))
+        self.body.configure(state="disabled")
+        buttons = ttk.Frame(frame, style="TFrame")
+        buttons.pack(fill="x", pady=(12, 0))
+        ttk.Button(
+            buttons,
+            text=app.t("onboard.open"),
+            style="Accent.TButton",
+            command=self._open_settings,
+        ).pack(side="left")
+        ttk.Button(
+            buttons, text=app.t("onboard.later"), command=self.destroy
+        ).pack(side="left", padx=(8, 0))
+
+    def _open_settings(self) -> None:
+        self.destroy()
+        self.app.open_settings()
+
+    def apply_language(self) -> None:
+        self.title(self.app.t("onboard.title"))
+        self.body.configure(state="normal")
+        self.body.delete("1.0", "end")
+        self.body.insert("1.0", self.app.t("onboard.body"))
+        self.body.configure(state="disabled")
 
 
 class DoctorCodeApp:
@@ -113,6 +162,7 @@ class DoctorCodeApp:
         self.root.after(80, self._poll_events)
         self.root.after(120, self._poll_approvals)
         self.root.after(400, self._maybe_auto_start_server)
+        self.root.after(600, self._maybe_onboard)
         self.root.deiconify()
         self.root.lift()
         self._set_detail(
@@ -206,7 +256,10 @@ class DoctorCodeApp:
         self.model_combo.bind("<<ComboboxSelected>>", self._on_model_chosen)
         self._text_button(
             right, "toolbar.refresh_models", self.refresh_models
-        ).pack(side="left", padx=(0, 14))
+        ).pack(side="left", padx=(0, 8))
+        self._text_button(right, "toolbar.settings", self.open_settings).pack(
+            side="left", padx=(0, 10)
+        )
 
         self.language_frame = ttk.Frame(right, style="Panel.TFrame")
         self.language_frame.pack(side="left")
@@ -355,7 +408,30 @@ class DoctorCodeApp:
         self._apply_theme()
         self._retranslate()
         self._refresh_model_choices()
+        self._refresh_toolbar()
         self._set_status(self.t("gui.settings_saved"))
+
+    def _offer_settings(self, body_key: str, **params: object) -> None:
+        """Explain what is missing and offer to open Settings right away."""
+        if messagebox.askyesno(
+            self.t("onboard.title"),
+            self.t(body_key, **params),
+            parent=self.root,
+        ):
+            self.open_settings()
+
+    def _maybe_onboard(self) -> None:
+        """First-run guidance while the writer endpoint is not configured.
+
+        Non-modal on purpose: it must never block the window or a headless
+        test; closing it is the same as choosing "Later".
+        """
+        if self._closing or self._closed:
+            return
+        profile = self.settings_store.settings.profile("writer")
+        if profile.base_url:
+            return
+        OnboardDialog(self, "onboard.body")
 
     def _retranslate(self) -> None:
         self.root.title(self.t("app.title"))
@@ -629,6 +705,13 @@ class DoctorCodeApp:
                 self.stop_button.configure(state="disabled")
         finally:
             self._syncing_controls = False
+        if not self.model_var.get().strip() and not profile.is_configured:
+            # Empty readonly combo looks broken; say what to do instead.
+            self._syncing_controls = True
+            try:
+                self.model_var.set(self.t("toolbar.model_hint"))
+            finally:
+                self._syncing_controls = False
         self._refresh_model_choices()
         if session is not None:
             self._set_detail(self.t("gui.status_events", count=len(session.feed)))
@@ -706,6 +789,7 @@ class DoctorCodeApp:
         profile = self.settings_store.settings.profile("writer")
         if not profile.base_url:
             self._set_status(self.t("gui.settings_required"), error=True)
+            self._offer_settings("onboard.offer")
             return
 
         async def load() -> list[str]:

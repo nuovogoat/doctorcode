@@ -59,13 +59,18 @@ class ReviewerService:
                 ActionStatus.FAILURE,
                 "Reviewer endpoint is not configured. Open Settings -> Reviewer.",
                 error_code=str(error),
+                summary_key="review.not_configured",
             )
             return ReviewResult(ActionStatus.FAILURE, "", "", "", str(error))
         prompt = (
             f"Review instructions:\n{instructions.strip() or 'Find correctness risks.'}\n\n"
             f"Material:\n{material}"
         )
-        self._emit(ActionStatus.IN_PROGRESS, "Reviewer is analysing the material…")
+        self._emit(
+            ActionStatus.IN_PROGRESS,
+            "Reviewer is analysing the material…",
+            summary_key="review.running",
+        )
         client = None
         try:
             client = self.client_factory(
@@ -85,6 +90,8 @@ class ReviewerService:
                 f"Review failed: {exc}",
                 raw=turn.raw_payload if "turn" in locals() else str(exc),
                 error_code=exc.code,
+                summary_key="review.failed",
+                summary_params={"error": str(exc)},
             )
             return ReviewResult(ActionStatus.FAILURE, "", "", profile.model, exc.code)
         except Exception as exc:
@@ -94,6 +101,8 @@ class ReviewerService:
                 f"Reviewer error: {type(exc).__name__}",
                 raw=repr(exc),
                 error_code="REVIEWER_ERROR",
+                summary_key="review.error",
+                summary_params={"error_type": type(exc).__name__},
             )
             return ReviewResult(ActionStatus.FAILURE, "", "", profile.model, "REVIEWER_ERROR")
         finally:
@@ -108,6 +117,8 @@ class ReviewerService:
             f"Reviewer analysis ready ({len(text)} characters).",
             raw=turn.raw_payload,
             metadata={"model": profile.model},
+            summary_key="review.ready",
+            summary_params={"chars": len(text)},
         )
         return ReviewResult(ActionStatus.SUCCESS, text, turn.raw_payload, profile.model)
 
@@ -119,6 +130,8 @@ class ReviewerService:
         raw: str = "",
         metadata: dict[str, object] | None = None,
         error_code: str | None = None,
+        summary_key: str = "",
+        summary_params: dict[str, object] | None = None,
     ) -> None:
         details = dict(metadata or {})
         if error_code:
@@ -131,5 +144,7 @@ class ReviewerService:
                 human_summary=summary,
                 raw_payload=raw,
                 metadata=details,
+                summary_key=summary_key,
+                summary_params=summary_params or {},
             )
         )

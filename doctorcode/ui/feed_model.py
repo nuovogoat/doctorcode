@@ -27,12 +27,35 @@ def event_action(event: ActionEvent) -> str:
     return event.action_type.value
 
 
-def event_human_row(event: ActionEvent) -> tuple[str, str, str, str]:
+def event_status_text(event: ActionEvent, translator: Locale | None = None) -> str:
+    """Localized status word; raw enum value without a translator."""
+    if translator is None:
+        return event.status.value
+    return translator.t(f"status.{event.status.value.lower()}")
+
+
+def event_action_text(event: ActionEvent, translator: Locale | None = None) -> str:
+    """Localized action kind; raw enum value without a translator."""
+    if translator is None:
+        return event.action_type.value
+    return translator.t(f"action.{event.action_type.value}")
+
+
+def event_summary(event: ActionEvent, translator: Locale | None = None) -> str:
+    """Localized summary when the emitter supplied a stable i18n key."""
+    if translator is not None and event.summary_key:
+        return translator.t(event.summary_key, **event.summary_params)
+    return event.human_summary
+
+
+def event_human_row(
+    event: ActionEvent, translator: Locale | None = None
+) -> tuple[str, str, str, str]:
     return (
         event_time(event),
-        event_status(event),
-        event_action(event),
-        event.human_summary,
+        event_status_text(event, translator),
+        event_action_text(event, translator),
+        event_summary(event, translator),
     )
 
 

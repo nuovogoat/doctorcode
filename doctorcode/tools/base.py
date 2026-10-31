@@ -75,6 +75,8 @@ class ToolOutcome(BaseModel):
     raw_payload: str = ""
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
     action_type: ActionType = ActionType.TOOL_CALL
+    summary_key: str = ""
+    summary_params: dict[str, JsonValue] = Field(default_factory=dict)
 
     @classmethod
     def success(
@@ -84,6 +86,8 @@ class ToolOutcome(BaseModel):
         raw: str = "",
         metadata: dict[str, JsonValue] | None = None,
         action_type: ActionType = ActionType.TOOL_CALL,
+        summary_key: str = "",
+        summary_params: dict[str, JsonValue] | None = None,
     ) -> ToolOutcome:
         return cls(
             status=ActionStatus.SUCCESS,
@@ -91,6 +95,8 @@ class ToolOutcome(BaseModel):
             raw_payload=raw,
             metadata=metadata or {},
             action_type=action_type,
+            summary_key=summary_key,
+            summary_params=summary_params or {},
         )
 
     @classmethod
@@ -101,6 +107,8 @@ class ToolOutcome(BaseModel):
         raw: str = "",
         metadata: dict[str, JsonValue] | None = None,
         action_type: ActionType = ActionType.TOOL_CALL,
+        summary_key: str = "",
+        summary_params: dict[str, JsonValue] | None = None,
     ) -> ToolOutcome:
         return cls(
             status=ActionStatus.FAILURE,
@@ -108,6 +116,8 @@ class ToolOutcome(BaseModel):
             raw_payload=raw,
             metadata=metadata or {},
             action_type=action_type,
+            summary_key=summary_key,
+            summary_params=summary_params or {},
         )
 
 

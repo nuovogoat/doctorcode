@@ -250,6 +250,16 @@ class ReviewerWindow(tk.Toplevel):
                     if review.status is ActionStatus.SUCCESS
                     else f"Review failed: {review.error_code or 'unknown error'}."
                 ),
+                summary_key=(
+                    "review.done"
+                    if review.status is ActionStatus.SUCCESS
+                    else "review.failed"
+                ),
+                summary_params=(
+                    {"model": review.model or ""}
+                    if review.status is ActionStatus.SUCCESS
+                    else {"error": review.error_code or ""}
+                ),
                 raw_payload=review.text or review.raw_payload,
                 metadata={"model": review.model, "read_only": True},
             )

@@ -64,11 +64,14 @@ def test_product_name_typo_is_caught(scratch_repo: Path) -> None:
     assert any("DoctroCode" in f for f in gate.failures)
 
 
-def test_package_name_with_separator_is_caught(scratch_repo: Path) -> None:
+def test_package_name_with_separator_is_allowed(scratch_repo: Path) -> None:
+    """doctor_code / doctor-code with correct letters are legitimate forms
+    (distribution name, Android project path, dependency names) — not typos.
+    """
     _write(scratch_repo, "doctorcode/cli.py", "# use doctor_code helper")
+    _write(scratch_repo, "pyproject.toml", 'deps = ["doctor-code-ai-connect"]')
     gate = check_proper_name(scratch_repo)
-    assert not gate.ok
-    assert any("package-name variant" in f for f in gate.failures)
+    assert gate.ok, gate.failures
 
 
 def test_real_repo_is_clean() -> None:
